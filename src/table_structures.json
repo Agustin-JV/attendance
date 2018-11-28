@@ -1,0 +1,77 @@
+{
+  "attendance": {
+    "db": "attendance",
+    "project": "attendance",
+    "object_stores": {
+      "users": {
+        "db": "attendance",
+        "project": "attendance",
+        "name": "users",
+        "keyPath": "user_id",
+        "autoIncrement": true,
+        "indices": {
+          "sap_id": true,
+          "name": false
+        }
+      },
+      "days": {
+        "db": "attendance",
+        "project": "attendance",
+        "name": "days",
+        "keyPath": "id",
+        "autoIncrement": true,
+        "indices": {
+          "date_user": {
+            "unique": true,
+            "indices": ["year", "month", "day", "user_id"]
+          },
+          "user_id": false,
+          "day": false,
+          "month": false,
+          "year": false
+        }
+      },
+      "wsinf": {
+        "db": "attendance",
+        "project": "attendance",
+        "name": "wsinf",
+        "keyPath": "id",
+        "autoIncrement": true,
+        "indices": {
+          "year_month_user": {
+            "unique": true,
+            "indices": ["year", "month", "day", "user_id"]
+          },
+          "user_id": false,
+          "month": false,
+          "year": false,
+          "code": false,
+          "day": false,
+          "day_of_week": false
+        }
+      }
+    }
+  },
+  "attendancefb": {
+    "db": "attendancefb",
+    "project": "attendance",
+    "object_stores": {
+      "scheduler": {
+        "db": "attendancefb",
+        "project": "attendancefb",
+        "name": "scheduler",
+        "keyPath": "id",
+        "autoIncrement": true,
+        "indices": {
+          "path_pos": {
+            "unique": true,
+            "indices": ["path", "after"]
+          },
+          "path": false,
+          "after": false,
+          "retrieve_date": false
+        }
+      }
+    }
+  }
+}
