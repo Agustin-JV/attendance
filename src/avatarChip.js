@@ -8,12 +8,12 @@ class AvChip extends Component {
     this.state = { hover: false };
   }
   setButtonHovered = hover => () => {
-    this.setState({ hover: hover });
+    this.setState({ hover: hover && this.props.disabled });
   };
   render() {
     const { label, avatar, onClick, variant, disabled, hide } = this.props;
     let c = this.getColor();
-
+    console.log('Fix clickable thing to be able to disable them')
     return hide !== true ? (
       <Chip
         avatar={
@@ -23,7 +23,7 @@ class AvChip extends Component {
         label={label}
         variant={variant || 'default'}
         onClick={onClick}
-        disabled={disabled || false}
+        clickable={disabled || false}
         onMouseEnter={this.setButtonHovered(true)}
         onMouseLeave={this.setButtonHovered(false)}
       />

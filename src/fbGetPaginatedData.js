@@ -35,21 +35,22 @@ const processQuery = (caller, collection, callback, lastRow, ...args) => querySn
   let lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
   let lr = lastRow;
   lastRow = lastVisible !== undefined ? lastVisible : lastRow;
-
-  if (!fromCache) {
+  lr = lr ? lr.id : '-1';
+  if (!fromCache && lr) {
     addUpdate(
-      { path: collection, after: lr ? lr.id : '-1', retrieve_date: Date.now() },
-      [collection, lr ? lr.id : '-1'],
+      { path: collection, after: lr, retrieve_date: Date.now() },
+      [collection, lr],
       table_structures.attendancefb.object_stores.scheduler,
       'path_pos'
     );
   }
+
   callback(querySnapshot, ...args).then(
-    goLive(collection, fromCache, empty, caller, lastRow, ...args)
+    goLive(collection, fromCache, empty, caller, callback, lastRow, ...args)
   );
 };
 
-const goLive = (collection, fromCache, empty, caller, lastRow, ...args) => () => {
+const goLive = (collection, fromCache, empty, caller, callback, lastRow, ...args) => () => {
   //var source = fromCache ? 'local cache' : 'server';
   //console.log('Data came from ' + source + ' ' + caller);
   if (fromCache && empty) {
@@ -58,14 +59,14 @@ const goLive = (collection, fromCache, empty, caller, lastRow, ...args) => () =>
         .startAfter(lastRow)
         .limit(50)
         .get()
-        .then(processQuery(getMoreData, collection, ...args), error => {
+        .then(processQuery(getMoreData, collection, callback, lastRow, ...args), error => {
           console.log('goLive after', error);
         });
     } else {
       db.collection(collection)
         .limit(50)
         .get()
-        .then(processQuery(getData, collection, ...args), error => {
+        .then(processQuery(getData, collection, callback, ...args), error => {
           console.log('goLive begining', error);
         });
     }

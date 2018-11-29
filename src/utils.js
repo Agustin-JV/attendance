@@ -1,3 +1,4 @@
+// @ts-check
 export function mergeArrays(leadArray, secondArray, key) {
   let h = {};
   let n = [];
@@ -11,7 +12,7 @@ export function mergeArraysMultyKey(leadArray, secondArray, keys) {
   let n = [];
   leadArray.concat(secondArray).map(function(b) {
     let key = '';
-    console.log(b);
+    //console.log(b);
     for (let x in keys) {
       key += b[keys[x]] + '/';
     }

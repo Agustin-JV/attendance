@@ -1,3 +1,4 @@
+//#region IMPORTS
 import React from 'react';
 import 'react-tabulator/lib/css/bootstrap/tabulator_bootstrap.min.css';
 import { ReactTabulator } from 'react-tabulator';
@@ -35,6 +36,7 @@ import { mergeArrays } from './utils';
 import Pagination from './pagination';
 import AvChip from './avatarChip';
 import { getData, getMoreData } from './fbGetPaginatedData';
+//#endregion
 class UserProjects extends React.Component {
   constructor(props) {
     super(props);
@@ -280,13 +282,13 @@ class UserProjects extends React.Component {
   getData = () => {
     getData('users', this.processQuery);
   };
-  processQuery = querySnapshot => {
-    let lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
-    let data = querySnapshot.docs.map(function(querySnapshot) {
-      return querySnapshot.data();
+  processQuery = snapshot => {
+    let lastVisible = snapshot.docs[snapshot.docs.length - 1];
+    let data = snapshot.docs.map(function(snapshot) {
+      return snapshot.data();
     });
-    let keys = querySnapshot.docs.map(function(querySnapshot) {
-      return querySnapshot.id;
+    let keys = snapshot.docs.map(function(snapshot) {
+      return snapshot.id;
     });
     const { rows } = this.state;
     return new Promise((resolve, reject) => {
@@ -294,7 +296,7 @@ class UserProjects extends React.Component {
         {
           rows: mergeArrays(data, rows, 'sap_id'),
           keys: mergeArrays(keys, this.state.keys, 'sap_id'),
-          allrows: data.length < 50 && !querySnapshot.metadata.fromCache,
+          allrows: data.length < 50 && !snapshot.metadata.fromCache,
           lastRow: lastVisible !== undefined ? lastVisible : this.state.lastRow
         },
         () => {
@@ -308,7 +310,6 @@ class UserProjects extends React.Component {
       );
     });
   };
-
   getMoreData = () => {
     getMoreData('users', this.processQuery, this.state.lastRow);
   };
@@ -341,7 +342,7 @@ class UserProjects extends React.Component {
     return String(value);
   };
 }
-
+//#region consts
 const styles = theme => ({
   button: {
     margin: theme.spacing.unit
@@ -511,5 +512,5 @@ const data = [
     sap_id: '00000010'
   }
 ];
-
+//#endregion
 export default withStyles(styles)(UserProjects);

@@ -1,3 +1,5 @@
+//@ts-check
+
 //#region IMPORTS
 import React, { Component } from 'react';
 import 'react-big-scheduler/lib/css/style.css';
@@ -50,36 +52,9 @@ class BigCalendar extends Component {
         ]
       }
     );
-    let resources = [
-      {
-        id: '00000000',
-        name: 'Fulanito1',
-        summary: '87877'
-      },
-      {
-        id: 'r2',
-        name: 'Resource2'
-      },
-      {
-        id: 'r3',
-        name: 'Resource3'
-      },
-      {
-        id: 'r4',
-        name: 'Resource3'
-      },
-      {
-        id: 'r5',
-        name: 'Resource5'
-      }
-    ];
-
     schedulerData.localeMoment.locale('es-mx');
-    schedulerData.setResources(resources);
     //set events here or later,
     //the event array should be sorted in ascending order by event.start property, otherwise there will be some rendering errors
-
-    schedulerData.setEvents([]);
     this.state = {
       viewModel: schedulerData,
       anchorEl: null,
@@ -87,7 +62,11 @@ class BigCalendar extends Component {
       currentEvent: null,
       enableEdit: false,
       pendingSave: true,
+      rowsPerPage: 5,
+      page: 1,
+      pendingUpdate:[],
       visibleUsers: [],
+      users:[],
       entrys: [],
       startDate: {
         year: moment().get('year'),
@@ -98,7 +77,6 @@ class BigCalendar extends Component {
         month: moment().get('month') + 1
       }
     };
-    this.toggleEdit = this.toggleEdit.bind(this);
   }
   paginationRef = null;
   // #region render
@@ -153,7 +131,7 @@ class BigCalendar extends Component {
       <CardActions style={{ paddingTop: '0%' }} disableActionSpacing>
         <Pagination
           ref={ref => (this.paginationRef = ref)}
-          rows={5}
+          rows={this.state.users.length}
           onPageChange={this.handleChangePage}
           onGoNext={this.onGoNext}
           onGoLast={this.onGoLast}
@@ -161,7 +139,7 @@ class BigCalendar extends Component {
         />
         {this.state.enableEdit ? (
           <span>
-            <AvChip color="blue" avatar={<Save />} label="Save" onClick={this.onSave} />{' '}
+            <AvChip color="blue" avatar={<Save />} label="Save" clickable={false} onClick={this.onSave} />{' '}
             <AvChip
               cAr={['red', 700, 900]}
               avatar={<Delete />}
@@ -185,17 +163,31 @@ class BigCalendar extends Component {
     );
   };
   // #endregion
-  onGoLast = () => {
+  componentDidMount=()=>{
     this.getShifts();
+  }
+  onGoLast = () => {
+    this.getMoreShifts();
   };
-  toggleEdit(event) {
+  handleChangePage = page => {
+    this.getVisibleUsers(page,this.state.rowsPerPage);
+    this.setState({ page: page });
+  };
+  handleChangeRowsPerPage = rowsPerPage => {
+    this.getVisibleUsers(this.state.page,rowsPerPage);
+    this.setState({
+      rowsPerPage: rowsPerPage
+    });
+  };
+  toggleEdit =(event) => {
     this.setState({ enableEdit: !this.state.enableEdit });
   }
   onCloseShiftSelect = () => {
-    this.setState({ open: false });
+    this.setState({ open: false , newEvent:null});
   };
   getShifts = () => {
     let { startDate, endDate } = this.state;
+    this.getUsersData();
     if (startDate.month === endDate.month) {
       this.getShifstsData(startDate.year, startDate.month);
     } else {
@@ -203,11 +195,21 @@ class BigCalendar extends Component {
       this.getShifstsData(endDate.year, endDate.month);
     }
   };
+  getMoreShifts = () => {
+    let { startDate, endDate } = this.state;
+    this.getUsersMoreData();
+    if (startDate.month === endDate.month) {
+      this.getShifstsMoreData(startDate.year, startDate.month);
+    } else {
+      this.getShifstsMoreData(startDate.year, startDate.month);
+      this.getShifstsMoreData(endDate.year, endDate.month);
+    }
+  };
   onSave = () => {
     this.setState({ pendingSave: false });
   };
 
-  // #region Scheduler functions
+  //#region Scheduler functions
   prevClick = schedulerData => {
     schedulerData.prev();
     this.onScheduleChange(schedulerData);
@@ -266,11 +268,14 @@ class BigCalendar extends Component {
   };
   newEvent = (schedulerData, slotId, slotName, start, end, type, item) => {
     if (this.state.enableEdit) {
-      let newFreshId = 0;
+      let s = new Date(start)
+      let e = new Date(end)
+      let newFreshId = '' + slotId + s.getFullYear() + s.getMonth() +'-'+ s.getDate() + '-' + e.getDate();
       schedulerData.events.forEach(item => {
-        if (item.id >= newFreshId) newFreshId = item.id + 1;
+        if (item.id === newFreshId) newFreshId = newFreshId + '-'+1;
       });
-      console.log('update here');
+      //console.log('update here');
+      
       let newEvent = {
         id: newFreshId,
         title: 'X',
@@ -280,17 +285,20 @@ class BigCalendar extends Component {
         bgColor: 'purple',
         editable: true
       };
-      schedulerData.addEvent(newEvent);
+      
       this.setState({
         viewModel: schedulerData,
-        currentEvent: newEvent,
         open: true,
-        pendingSave: true
+        newEvent: newEvent,
+        pendingSave: true,
+        pendingUpdate:[]
       });
+      
     }
   };
   updateEventStart = (schedulerData, event, newStart) => {
     if (this.state.enableEdit && event.editable) {
+      this.onEdit(event,newStart,event.end)
       schedulerData.updateEventStart(event, newStart);
       this.setState({
         viewModel: schedulerData,
@@ -303,6 +311,7 @@ class BigCalendar extends Component {
   };
   updateEventEnd = (schedulerData, event, newEnd) => {
     if (this.state.enableEdit && event.editable) {
+      this.onEdit(event,event.start,newEnd)
       schedulerData.updateEventEnd(event, newEnd);
       this.setState({
         viewModel: schedulerData,
@@ -328,51 +337,111 @@ class BigCalendar extends Component {
       alert(`You just clicked an event: {id: ${event.id}, title: ${event.title}}`);
     };
   */
-  // #endregion
+  //#endregion
 
-  // #region User Server Fetch
-  getUsersData = (year, month) => {
-    getData('users', this.processQuery);
+  //#region User Server Fetch
+  /** fetchs for the users to fill the resource column */
+  getUsersData = () => {
+    getData('users', this.processUsersQuery);
   };
+  /** continue fetching for the users from the last one to fill the resource column */
   getUsersMoreData = () => {
-    getMoreData('users', this.processQuery, this.state.lastRow);
+    getMoreData('users', this.processUsersQuery, this.state.lastRow);
   };
+  /**
+   * @param {any} [snapshot]
+   * @return {Promise} emty
+   */
+  processUsersQuery=(snapshot)=>{
+    let lastVisible = snapshot.docs[snapshot.docs.length - 1];
+    let data = snapshot.docs.map(snapshot => {
+      let {sap_id, name} = snapshot.data();
+      return {id: sap_id, name:name}
+    });
+    let { lastRow, users } = this.state;
+    users = mergeArrays(data, users, 'id');
+    //sort by name
+    users.sort(function(a, b) {
+      var nameA = a.name.toUpperCase(); // ignore upper and lowercase
+      var nameB = b.name.toUpperCase(); // ignore upper and lowercase
+      if (nameA < nameB) {
+        return -1;
+      }
+      if (nameA > nameB) {
+        return 1;
+      }
+      // names must be equal
+      return 0;
+    });
+    return new Promise(resolve => {
+      this.setState(
+        {
+          users: users,
+          lastRow: lastVisible ? lastVisible : lastRow
+        },
+        () => {
+          this.getVisibleUsers(this.state.page,this.state.rowsPerPage);
+          this.paginationRef.forceUpdateRows();
+          resolve();
+        }
+      );
+    });
+  }
   // #endregion
 
-  // #region Shifts Serfer Fetch & build
+  //#region Shifts Serfer Fetch & build
+  /**
+   * @param {number} [year]
+   * @param {number} [month]
+   */
   getShifstsData = (year, month) => {
-    getData('wsinf/' + year + '/' + month, this.processShiftQuery, year, month);
+    let path = 'wsinf/' + year + '/' + month
+    getData( path, this.processShiftQuery, year, month);
   };
+  /**
+   * @param {number} [year]
+   * @param {number} [month]
+   */
   getShifstsMoreData = (year, month) => {
-    getMoreData(
-      'wsinf/' + year + '/' + month,
-      this.processShiftQuery,
-      this.state.lastRow,
-      year,
-      month
-    );
+    let path = 'wsinf/' + year + '/' + month
+    getMoreData( path, this.processShiftQuery, this.state.lastEntry, year, month );
   };
+  /**
+   * @param {any} [snapshot]
+   * @param {number} [year]
+   * @param {number} [month]
+   * @return {Promise} emty
+   */
   processShiftQuery = (snapshot, year, month) => {
     let lastVisible = snapshot.docs[snapshot.docs.length - 1];
     let data = snapshot.docs.map(snapshot => {
       return this.groupSameAdjasentDays(snapshot.id, year, month, snapshot.data().m);
     });
     data = [].concat(...data);
-    let { entrys, lastRow } = this.state;
+    let { entrys, lastEntry } = this.state;
+    entrys = mergeArrays(data, entrys,  'id')
+    this.state.viewModel.setEvents(entrys);
+
     return new Promise(resolve => {
       this.setState(
         {
-          entrys: mergeArraysMultyKey(data, entrys, ['resourceId', 'id']),
-          lastRow: lastVisible ? lastVisible : lastRow
+          entrys: entrys,
+          lastEntry: lastVisible ? lastVisible : lastEntry
         },
         () => {
-          this.state.viewModel.setEvents(this.state.enrtys);
           this.paginationRef.forceUpdateRows();
           resolve();
         }
       );
     });
   };
+  /**
+   * @param {string | number} [sap_id]
+   * @param {number} [year]
+   * @param {number} [month]
+   * @param {Array<any>} [days]
+   * @return {Array<any>} from buildShift
+   */
   groupSameAdjasentDays(sap_id, year, month, days) {
     let output = [];
     let prev = -1;
@@ -386,32 +455,71 @@ class BigCalendar extends Component {
     }
     return output;
   }
+  /**
+   * @param {string | number} [sap_id]
+   * @param {number} [year]
+   * @param {number} [month]
+   * @param {number} [day1]
+   * @param {number} [day1]
+   * @param {String} [code]
+   * @return {Object} result
+   */
   buildShift = (sap_id, year, month, day1, day2, code) => {
     return {
-      id: '' + sap_id + year + month + day1 + '-' + day2,
+      id: '' + sap_id + year + month +'-'+ day1 + '-' + day2,
       start: year + '-' + month + '-' + day1 + ' 00:00:00',
-      end: year + ' - ' + month + ' - ' + day2 + ' 23:59:59',
+      end: year + '-' + month + '-' + day2 + ' 23:59:59',
       resourceId: sap_id,
       title: code,
       bgColor: colors[shiftColors[code]][800], // There most be a shift code not implemented if here is an error
       editable: true
     };
   };
-  // #endregion
+  //#endregion
+  onEdit=(event,start,end)=>{
+    //addToDelete.push({ sap_id: 'sap_id', code: 0, day:0, year:0, month:0 });
+    let sap_id = event.resourceId;
+    let code = event.title;
+    let daysBetween = moment(end).diff(moment(start),'days');
+    let days = []
+    for(let i = 0; i <= daysBetween; i++){
+      let d = new Date(start);
+      d.setDate(d.getDate() + i);
+      days.push({sap_id:sap_id,code:code,year:d.getFullYear(),month:d.getMonth()+1,day:d.getDate() })
+    }
 
-  getVisibleUsers = () => {};
-
+    this.setState({
+      pendingUpdate:[]
+    })
+  }
+  getVisibleUsers = (page,rowsPerPage) => {
+    let { users } = this.state;
+    let visibleUsers = [].concat(users).splice( (page-1)*rowsPerPage, rowsPerPage )
+    this.state.viewModel.setResources(visibleUsers);
+    this.setState({})
+  };
+  /**
+   * Updates the event and also updates the pending save ones as well as finishing the new event process
+   */
   changeTo = code => () => {
+
     let e = this.state.currentEvent;
+    if(this.state.newEvent){
+      e = this.state.newEvent;
+    }
     if (e.editable) {
       e.title = code;
-      console.log('implement new colors source');
-      //e.bgColor = shiftColors[code].dark;
+      e.bgColor = colors[shiftColors[code]][800];
     }
+    if(this.state.newEvent){
+      this.state.viewModel.addEvent(e);
+    }
+    this.onEdit(e,e.start,e.end)
     this.setState({
       currentEvent: null,
       open: false,
-      pendingSave: true
+      pendingSave: true,
+      newEvent: null
     });
   };
 }
