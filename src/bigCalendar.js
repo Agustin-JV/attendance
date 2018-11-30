@@ -13,8 +13,9 @@ import { Save, Edit, Delete } from '@material-ui/icons';
 import ShiftSelect from './shiftSelect';
 import AvChip from './avatarChip';
 import Pagination from './pagination';
-import { mergeArrays, mergeArraysMultyKey } from './utils';
+import { mergeArrays, mergeArraysMultyKey, isAny } from './utils';
 import { getData, getMoreData } from './fbGetPaginatedData';
+import shift_colors from './shift_colors.json';
 //#endregion
 
 class BigCalendar extends Component {
@@ -60,13 +61,14 @@ class BigCalendar extends Component {
       anchorEl: null,
       open: false,
       currentEvent: null,
+      newEvent: null,
       enableEdit: false,
       pendingSave: true,
       rowsPerPage: 5,
       page: 1,
-      pendingUpdate:[],
+      pendingUpdate: [],
       visibleUsers: [],
-      users:[],
+      users: [],
       entrys: [],
       startDate: {
         year: moment().get('year'),
@@ -79,10 +81,12 @@ class BigCalendar extends Component {
     };
   }
   paginationRef = null;
+
   // #region render
   render() {
     const { viewModel, open } = this.state;
     const { classes } = this.props;
+    let { showNS, showMS } = this.activateOptions();
     return (
       <Card style={{ width: 1050 }}>
         {this.state.enableEdit ? (
@@ -122,11 +126,18 @@ class BigCalendar extends Component {
           />
         </CardContent>
         {this.footer()}
-        <ShiftSelect open={open} onClick={this.changeTo} onClose={this.onCloseShiftSelect} />
+        <ShiftSelect
+          open={open}
+          showMS={showMS}
+          showNS={showNS}
+          onClick={this.changeTo}
+          onClose={this.onCloseShiftSelect}
+        />
       </Card>
     );
   }
   footer = () => {
+    let save = this.state.pendingUpdate.length > 0;
     return (
       <CardActions style={{ paddingTop: '0%' }} disableActionSpacing>
         <Pagination
@@ -139,11 +150,18 @@ class BigCalendar extends Component {
         />
         {this.state.enableEdit ? (
           <span>
-            <AvChip color="blue" avatar={<Save />} label="Save" clickable={false} onClick={this.onSave} />{' '}
+            <AvChip
+              color={save ? 'blue' : 'grey'}
+              avatar={<Save />}
+              label="Save"
+              clickable={save}
+              onClick={this.onSave}
+            />{' '}
             <AvChip
               cAr={['red', 700, 900]}
               avatar={<Delete />}
               label="Discard"
+              clickable={false}
               onClick={this.onSave}
             />
           </span>
@@ -157,33 +175,48 @@ class BigCalendar extends Component {
             variant={this.state.enableEdit ? 'default' : 'outlined'}
             label={this.state.enableEdit ? 'Diavtivate Edit' : 'Enable Edit'}
             onClick={this.toggleEdit}
+            clickable={true}
           />
         </div>
       </CardActions>
     );
   };
   // #endregion
-  componentDidMount=()=>{
+  activateOptions = () => {
+    let { newEvent, currentEvent } = this.state;
+    let actual = newEvent || currentEvent;
+    if (actual) {
+      let start = moment(actual.start);
+      let end = moment(actual.end);
+      let lenght = end.diff(start, 'days');
+      let showNS = lenght > 0 ? false : true;
+      let showMS = isAny(start.day(), [0, 6]) && isAny(end.day(), [0, 6]);
+      showMS = lenght > 1 ? false : showMS;
+      return { showNS, showMS };
+    }
+    return { showNS: false, showMS: false };
+  };
+  componentDidMount = () => {
     this.getShifts();
-  }
+  };
   onGoLast = () => {
     this.getMoreShifts();
   };
   handleChangePage = page => {
-    this.getVisibleUsers(page,this.state.rowsPerPage);
+    this.getVisibleUsers(page, this.state.rowsPerPage);
     this.setState({ page: page });
   };
   handleChangeRowsPerPage = rowsPerPage => {
-    this.getVisibleUsers(this.state.page,rowsPerPage);
+    this.getVisibleUsers(this.state.page, rowsPerPage);
     this.setState({
       rowsPerPage: rowsPerPage
     });
   };
-  toggleEdit =(event) => {
+  toggleEdit = event => {
     this.setState({ enableEdit: !this.state.enableEdit });
-  }
+  };
   onCloseShiftSelect = () => {
-    this.setState({ open: false , newEvent:null});
+    this.setState({ open: false, newEvent: null });
   };
   getShifts = () => {
     let { startDate, endDate } = this.state;
@@ -268,14 +301,14 @@ class BigCalendar extends Component {
   };
   newEvent = (schedulerData, slotId, slotName, start, end, type, item) => {
     if (this.state.enableEdit) {
-      let s = new Date(start)
-      let e = new Date(end)
-      let newFreshId = '' + slotId + s.getFullYear() + s.getMonth() +'-'+ s.getDate() + '-' + e.getDate();
+      let s = new Date(start);
+      let e = new Date(end);
+      let newFreshId =
+        '' + slotId + s.getFullYear() + s.getMonth() + '-' + s.getDate() + '-' + e.getDate();
       schedulerData.events.forEach(item => {
-        if (item.id === newFreshId) newFreshId = newFreshId + '-'+1;
+        if (item.id === newFreshId) newFreshId = newFreshId + '-' + 1;
       });
-      //console.log('update here');
-      
+
       let newEvent = {
         id: newFreshId,
         title: 'X',
@@ -285,20 +318,20 @@ class BigCalendar extends Component {
         bgColor: 'purple',
         editable: true
       };
-      
+
       this.setState({
         viewModel: schedulerData,
         open: true,
         newEvent: newEvent,
-        pendingSave: true,
-        pendingUpdate:[]
+        pendingSave: true
       });
-      
     }
   };
   updateEventStart = (schedulerData, event, newStart) => {
     if (this.state.enableEdit && event.editable) {
-      this.onEdit(event,newStart,event.end)
+      event = this.eventRules(event, event.title, newStart, event.end);
+      this.onDeleteRemaining(event, event.start, newStart);
+      this.onEdit(event, newStart, event.end);
       schedulerData.updateEventStart(event, newStart);
       this.setState({
         viewModel: schedulerData,
@@ -311,7 +344,9 @@ class BigCalendar extends Component {
   };
   updateEventEnd = (schedulerData, event, newEnd) => {
     if (this.state.enableEdit && event.editable) {
-      this.onEdit(event,event.start,newEnd)
+      event = this.eventRules(event, event.title, event.start, newEnd);
+      this.onDeleteRemaining(event, newEnd, event.end, true);
+      this.onEdit(event, event.start, newEnd);
       schedulerData.updateEventEnd(event, newEnd);
       this.setState({
         viewModel: schedulerData,
@@ -321,6 +356,9 @@ class BigCalendar extends Component {
   };
   moveEvent = (schedulerData, event, slotId, slotName, start, end) => {
     if (this.state.enableEdit && event.editable) {
+      event = this.eventRules(event, event.title, start, end);
+      this.onDelete(event, event.start, event.end);
+      this.onEdit(event, start, end);
       schedulerData.moveEvent(event, slotId, slotName, start, end);
       this.setState({
         viewModel: schedulerData,
@@ -352,11 +390,11 @@ class BigCalendar extends Component {
    * @param {any} [snapshot]
    * @return {Promise} emty
    */
-  processUsersQuery=(snapshot)=>{
+  processUsersQuery = snapshot => {
     let lastVisible = snapshot.docs[snapshot.docs.length - 1];
     let data = snapshot.docs.map(snapshot => {
-      let {sap_id, name} = snapshot.data();
-      return {id: sap_id, name:name}
+      let { sap_id, name } = snapshot.data();
+      return { id: sap_id, name: name };
     });
     let { lastRow, users } = this.state;
     users = mergeArrays(data, users, 'id');
@@ -380,13 +418,13 @@ class BigCalendar extends Component {
           lastRow: lastVisible ? lastVisible : lastRow
         },
         () => {
-          this.getVisibleUsers(this.state.page,this.state.rowsPerPage);
+          this.getVisibleUsers(this.state.page, this.state.rowsPerPage);
           this.paginationRef.forceUpdateRows();
           resolve();
         }
       );
     });
-  }
+  };
   // #endregion
 
   //#region Shifts Serfer Fetch & build
@@ -395,16 +433,16 @@ class BigCalendar extends Component {
    * @param {number} [month]
    */
   getShifstsData = (year, month) => {
-    let path = 'wsinf/' + year + '/' + month
-    getData( path, this.processShiftQuery, year, month);
+    let path = 'wsinf/' + year + '/' + month;
+    getData(path, this.processShiftQuery, year, month);
   };
   /**
    * @param {number} [year]
    * @param {number} [month]
    */
   getShifstsMoreData = (year, month) => {
-    let path = 'wsinf/' + year + '/' + month
-    getMoreData( path, this.processShiftQuery, this.state.lastEntry, year, month );
+    let path = 'wsinf/' + year + '/' + month;
+    getMoreData(path, this.processShiftQuery, this.state.lastEntry, year, month);
   };
   /**
    * @param {any} [snapshot]
@@ -419,7 +457,7 @@ class BigCalendar extends Component {
     });
     data = [].concat(...data);
     let { entrys, lastEntry } = this.state;
-    entrys = mergeArrays(data, entrys,  'id')
+    entrys = mergeArrays(data, entrys, 'id');
     this.state.viewModel.setEvents(entrys);
 
     return new Promise(resolve => {
@@ -449,7 +487,8 @@ class BigCalendar extends Component {
       if (days[x] !== null && days[x + 1] !== null && days[x] === days[x + 1]) {
         if (prev === -1) prev = x;
       } else {
-        output.push(this.buildShift(sap_id, year, month, prev !== -1 ? prev : x, x, days[x]));
+        if (days[x] !== '')
+          output.push(this.buildShift(sap_id, year, month, prev !== -1 ? prev : x, x, days[x]));
         prev = -1;
       }
     }
@@ -466,55 +505,95 @@ class BigCalendar extends Component {
    */
   buildShift = (sap_id, year, month, day1, day2, code) => {
     return {
-      id: '' + sap_id + year + month +'-'+ day1 + '-' + day2,
+      id: '' + sap_id + year + month + '-' + day1 + '-' + day2,
       start: year + '-' + month + '-' + day1 + ' 00:00:00',
       end: year + '-' + month + '-' + day2 + ' 23:59:59',
       resourceId: sap_id,
       title: code,
-      bgColor: colors[shiftColors[code]][800], // There most be a shift code not implemented if here is an error
+      bgColor: colors[shift_colors[code]][800], // There most be a shift code not implemented if here is an error
       editable: true
     };
   };
   //#endregion
-  onEdit=(event,start,end)=>{
-    //addToDelete.push({ sap_id: 'sap_id', code: 0, day:0, year:0, month:0 });
+
+  onDeleteRemaining = (event, start, end, reverse) => {
+    let daysBetween = moment(start).diff(moment(end), 'days');
+    if (daysBetween < 0) {
+      if (reverse) {
+        [start, end] = [end, start];
+      }
+      let d = new Date(end);
+      d.setDate(d.getDate() + (reverse ? 1 : -1));
+      if (reverse) {
+        [d, start] = [start, d];
+      }
+      this.onDelete(event, start, d);
+    }
+  };
+  onEdit = (event, start, end) => {
     let sap_id = event.resourceId;
     let code = event.title;
-    let daysBetween = moment(end).diff(moment(start),'days');
-    let days = []
-    for(let i = 0; i <= daysBetween; i++){
+    let daysBetween = moment(end).diff(moment(start), 'days');
+    let days = [];
+    for (let i = 0; i <= daysBetween; i++) {
       let d = new Date(start);
       d.setDate(d.getDate() + i);
-      days.push({sap_id:sap_id,code:code,year:d.getFullYear(),month:d.getMonth()+1,day:d.getDate() })
+      let year = d.getFullYear();
+      let month = d.getMonth() + 1;
+      let day = d.getDate();
+      let id = [sap_id, year, month, day];
+      id = id.join('-');
+      days.push({ id, sap_id, code, year, month, day });
     }
-
+    this.setState(
+      {
+        pendingUpdate: mergeArrays(days, this.state.pendingUpdate, 'id')
+      },
+      () => {
+        /*console.log(this.state.pendingUpdate)*/
+      }
+    );
+  };
+  onDelete = (event, start, end) => {
+    let sap_id = event.resourceId;
+    let daysBetween = moment(end).diff(moment(start), 'days');
+    let days = [];
+    for (let i = 0; i <= daysBetween; i++) {
+      let d = new Date(start);
+      d.setDate(d.getDate() + i);
+      let year = d.getFullYear();
+      let month = d.getMonth() + 1;
+      let day = d.getDate();
+      let id = [sap_id, year, month, day];
+      id = id.join('-');
+      days.push({ id, sap_id, code: '', year, month, day });
+    }
     this.setState({
-      pendingUpdate:[]
-    })
-  }
-  getVisibleUsers = (page,rowsPerPage) => {
+      pendingUpdate: mergeArrays(days, this.state.pendingUpdate, 'id')
+    });
+  };
+  getVisibleUsers = (page, rowsPerPage) => {
     let { users } = this.state;
-    let visibleUsers = [].concat(users).splice( (page-1)*rowsPerPage, rowsPerPage )
+    let visibleUsers = [].concat(users).splice((page - 1) * rowsPerPage, rowsPerPage);
     this.state.viewModel.setResources(visibleUsers);
-    this.setState({})
+    this.setState({});
   };
   /**
    * Updates the event and also updates the pending save ones as well as finishing the new event process
    */
   changeTo = code => () => {
-
     let e = this.state.currentEvent;
-    if(this.state.newEvent){
+    if (this.state.newEvent) {
       e = this.state.newEvent;
     }
+
     if (e.editable) {
-      e.title = code;
-      e.bgColor = colors[shiftColors[code]][800];
+      e = this.eventRules(e, code, e.start, e.end);
     }
-    if(this.state.newEvent){
+    if (this.state.newEvent) {
       this.state.viewModel.addEvent(e);
     }
-    this.onEdit(e,e.start,e.end)
+    this.onEdit(e, e.start, e.end);
     this.setState({
       currentEvent: null,
       open: false,
@@ -522,22 +601,50 @@ class BigCalendar extends Component {
       newEvent: null
     });
   };
-}
-let events = [
-  {
-    id: 1,
-    start: '2017-12-17 09:30:00',
-    end: '2017-12-18 23:30:00',
-    resourceId: '55975',
-    title: 'S',
-    bgColor: '#D9D9D9',
-    resizable: false,
-    movable: false,
-    startResizable: false,
-    editable: false
+  /**
+   * @param {object} [e] event
+   * @param {string} [code] shift code
+   */
+  eventRules = (e, code, start, end) => {
+    e.title = code;
+
+    start = moment(start);
+    end = moment(end);
+    let lenght = end.diff(start, 'days');
+    if (code === 'NS') {
+      e.resizable = false;
+    } else {
+      e.resizable = true;
+    }
+    if (code === 'MS') {
+      e.movable = lenght >= 1 ? false : true;
+      if (lenght > 1 || (!isAny(start.day(), [0, 6]) || !isAny(end.day(), [0, 6]))) {
+        e.title = 'S';
+        code = 'S';
+        e.movable = true;
+      }
+    }
+    e.bgColor = colors[shift_colors[code]][800];
+    return e;
+  };
+
+  loadHollydays =()=>{
+    
+    for(let i in hollydays){
+
+    }
+
+    /*return {
+      id: '' + sap_id + year + month + '-' + day1 + '-' + day2,
+      start: year + '-' + month + '-' + day1 + ' 00:00:00',
+      end: year + '-' + month + '-' + day2 + ' 23:59:59',
+      resourceId: sap_id,
+      title: code,
+      bgColor: colors[shift_colors[code]][800], // There most be a shift code not implemented if here is an error
+      editable: true
+    };*/
   }
-];
-let shiftColors = { MS: 'green', S: 'lime', NS: 'purple', O: 'amber', SUS: 'cyan' };
+}
 
 const styles = theme => ({
   button: {
@@ -554,4 +661,55 @@ const styles = theme => ({
     color: theme.palette.common.white
   }
 });
+
+const hollydays = [
+  {
+    name: 'Año nuevo',
+    year:2018,
+    day: 1,
+    month: 1
+  },
+  {
+    name: 'Dia de la Constitucion',
+    year:2018,
+    day: 5,
+    month: 2
+  },
+  {
+    name: 'Natalicio de Benito Juárez',
+    year:2018,
+    day: 19,
+    month: 3
+  },
+  {
+    name: 'Día del Trabajo',
+    year:2018,
+    day: 1,
+    month: 5
+  },
+  {
+    name: 'Día de la Independencia',
+    year:2018,
+    day: 16,
+    month: 9
+  },
+  {
+    name: 'Revolución Mexicana',
+    year:2018,
+    day: 19,
+    month: 11
+  },
+  {
+    name: 'Nuevo Precidente',
+    year:2018,
+    day: 1,
+    month: 12
+  },
+  {
+    name: 'Navidad',
+    year:2018,
+    day: 25,
+    month: 12
+  }
+];
 export default withStyles(styles)(withDragDropContext(BigCalendar));

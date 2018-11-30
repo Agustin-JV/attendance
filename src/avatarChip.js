@@ -7,13 +7,25 @@ class AvChip extends Component {
     super(props);
     this.state = { hover: false };
   }
+
   setButtonHovered = hover => () => {
-    this.setState({ hover: hover && this.props.disabled });
+    this.setState({ hover: hover && this.props.clickable });
+  };
+  onClick = () => {
+    let { onClick } = this.props;
+    if (onClick && this.isClickable()) {
+      onClick();
+    }
+  };
+  isClickable = () => {
+    let { clickable } = this.props;
+    let click = clickable !== null && clickable !== undefined ? clickable : true;
+    return click;
   };
   render() {
-    const { label, avatar, onClick, variant, disabled, hide } = this.props;
+    const { label, avatar, variant, clickable, hide } = this.props;
     let c = this.getColor();
-    console.log('Fix clickable thing to be able to disable them')
+    //console.log('Fix clickable thing to be able to disable them')
     return hide !== true ? (
       <Chip
         avatar={
@@ -22,8 +34,8 @@ class AvChip extends Component {
         style={{ backgroundColor: c['light'], color: c['text'], borderColor: c['border'] }}
         label={label}
         variant={variant || 'default'}
-        onClick={onClick}
-        clickable={disabled || false}
+        onClick={this.onClick}
+        clickable={this.isClickable()}
         onMouseEnter={this.setButtonHovered(true)}
         onMouseLeave={this.setButtonHovered(false)}
       />
