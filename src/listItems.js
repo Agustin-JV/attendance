@@ -8,13 +8,14 @@ import ShoppingCartIcon from '@material-ui/icons/ShoppingCart';
 import PeopleIcon from '@material-ui/icons/People';
 import BarChartIcon from '@material-ui/icons/BarChart';
 import LayersIcon from '@material-ui/icons/Layers';
+import { BeachAccess, EventNote, Unarchive } from '@material-ui/icons';
 import AssignmentIcon from '@material-ui/icons/Assignment';
 import { Route } from 'react-router-dom';
 import { withRouter } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 export const mainListItems = (
   <div>
-    <Link to="/">
+    <Link to="/dashboard">
       <ListItem button>
         <ListItemIcon>
           <DashboardIcon />
@@ -25,9 +26,9 @@ export const mainListItems = (
     <Link to="/wsinf">
       <ListItem button>
         <ListItemIcon>
-          <ShoppingCartIcon />
+          <EventNote />
         </ListItemIcon>
-        <ListItemText primary="Orders" />
+        <ListItemText primary="Calendars" />
       </ListItem>
     </Link>
     <Link to="/projects">
@@ -35,23 +36,23 @@ export const mainListItems = (
         <ListItemIcon>
           <PeopleIcon />
         </ListItemIcon>
-        <ListItemText primary="Customers" />
+        <ListItemText primary="Users" />
       </ListItem>
     </Link>
     <Link to="/upload-files">
       <ListItem button>
         <ListItemIcon>
-          <BarChartIcon />
+          <Unarchive />
         </ListItemIcon>
-        <ListItemText primary="Reports" />
+        <ListItemText primary="Upload Files" />
       </ListItem>
     </Link>
     <Link to="/download-report">
       <ListItem button>
         <ListItemIcon>
-          <LayersIcon />
+          <BarChartIcon />
         </ListItemIcon>
-        <ListItemText primary="Integrations" />
+        <ListItemText primary="Reports" />
       </ListItem>
     </Link>
   </div>
@@ -72,11 +73,13 @@ export const secondaryListItems = (
       </ListItemIcon>
       <ListItemText primary="Last quarter" />
     </ListItem>
-    <ListItem button>
-      <ListItemIcon>
-        <AssignmentIcon />
-      </ListItemIcon>
-      <ListItemText primary="Year-end sale" />
-    </ListItem>
+    <Link to="/holidays">
+      <ListItem button>
+        <ListItemIcon>
+          <BeachAccess />
+        </ListItemIcon>
+        <ListItemText primary="Holidays" />
+      </ListItem>
+    </Link>
   </div>
 );

@@ -201,6 +201,7 @@ class BigCalendar extends Component {
   };
   onGoLast = () => {
     this.getMoreShifts();
+    this.loadHollydays();
   };
   handleChangePage = page => {
     this.getVisibleUsers(page, this.state.rowsPerPage);
@@ -628,10 +629,9 @@ class BigCalendar extends Component {
     return e;
   };
 
-  loadHollydays =()=>{
-    
-    for(let i in hollydays){
-
+  loadHollydays = () => {
+    console.log(this.state.viewModel.getSlots());
+    for (let i in hollydays) {
     }
 
     /*return {
@@ -643,7 +643,7 @@ class BigCalendar extends Component {
       bgColor: colors[shift_colors[code]][800], // There most be a shift code not implemented if here is an error
       editable: true
     };*/
-  }
+  };
 }
 
 const styles = theme => ({
@@ -665,49 +665,49 @@ const styles = theme => ({
 const hollydays = [
   {
     name: 'Año nuevo',
-    year:2018,
+    year: 2018,
     day: 1,
     month: 1
   },
   {
     name: 'Dia de la Constitucion',
-    year:2018,
+    year: 2018,
     day: 5,
     month: 2
   },
   {
     name: 'Natalicio de Benito Juárez',
-    year:2018,
+    year: 2018,
     day: 19,
     month: 3
   },
   {
     name: 'Día del Trabajo',
-    year:2018,
+    year: 2018,
     day: 1,
     month: 5
   },
   {
     name: 'Día de la Independencia',
-    year:2018,
+    year: 2018,
     day: 16,
     month: 9
   },
   {
     name: 'Revolución Mexicana',
-    year:2018,
+    year: 2018,
     day: 19,
     month: 11
   },
   {
     name: 'Nuevo Precidente',
-    year:2018,
+    year: 2018,
     day: 1,
     month: 12
   },
   {
     name: 'Navidad',
-    year:2018,
+    year: 2018,
     day: 25,
     month: 12
   }
