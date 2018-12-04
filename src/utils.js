@@ -33,6 +33,22 @@ export function mergeArraysMultyKey(leadArray, secondArray, keys) {
     return row;
   });
 */
+export function arrayMatchPatterns(array, patterns){
+  for(let x in patterns){
+    if(!arrayMatchPattern(array,patterns[x])){
+      return false
+    }
+  }
+  return true
+}
+export function arrayMatchPattern(array, pattern){
+  for(let x in array){
+    if(typeof(array[x]) !== pattern[x] && pattern[x] !== 'any'){
+      return false
+    }
+  }
+  return true
+}
 export function isEmpty(obj) {
   // null and undefined are "empty"
   if (obj === null) return true;

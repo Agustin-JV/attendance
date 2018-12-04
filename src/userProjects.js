@@ -127,6 +127,7 @@ class UserProjects extends React.Component {
             variant={this.state.edit ? 'default' : 'outlined'}
             label={this.state.edit ? 'Diavtivate Edit' : 'Enable Edit'}
             onClick={this.edit}
+            clickable = {true}
           />
           <AvChip
             cAr={['indigo', 400, 600]}
@@ -135,6 +136,7 @@ class UserProjects extends React.Component {
             onClick={this.copyAll}
             label="Copy all"
             hide={this.state.edit}
+            clickable = {true}
           />
           <AvChip
             cAr={['indigo', 400, 600]}
@@ -143,6 +145,7 @@ class UserProjects extends React.Component {
             onClick={this.copySelected}
             label="Copy Selected"
             hide={this.state.edit}
+            clickable = {true}
           />
           <AvChip
             cAr={['indigo', 400, 600]}
@@ -151,6 +154,7 @@ class UserProjects extends React.Component {
             label="Add"
             variant="outlined"
             hide={!this.state.edit}
+            clickable = {true}
           />
           <AvChip
             cAr={this.state.selectedRows.length > 0 ? ['indigo', 400, 700] : ['grey', 500, 700]}
@@ -159,6 +163,7 @@ class UserProjects extends React.Component {
             label="Delete Selected"
             variant="outlined"
             hide={!this.state.edit}
+            clickable = {this.state.selectedRows.length > 0 }
           />
           <AvChip
             cAr={this.state.paste ? ['indigo', 400, 700] : ['grey', 500, 700]}
@@ -167,6 +172,7 @@ class UserProjects extends React.Component {
             label="Enable Paste"
             variant={this.state.paste ? 'default' : 'outlined'}
             hide={!this.state.edit}
+            clickable = {true}
           />
           <AvChip
             cAr={this.state.pendingUpdate.length > 0 ? ['indigo', 400, 700] : ['grey', 500, 700]}
@@ -176,6 +182,7 @@ class UserProjects extends React.Component {
             variant={this.state.pendingUpdate.length > 0 ? 'default' : 'outlined'}
             hide={!this.state.edit}
             disabled={this.state.pendingUpdate.length > 0}
+            clickable = {this.state.pendingUpdate.length> 0}
           />
           <AvChip
             cAr={['grey', 500, 700]}
@@ -183,6 +190,7 @@ class UserProjects extends React.Component {
             label="Update from file <Comming Soon>"
             variant="outlined"
             hide={!this.state.edit}
+            clickable = {true}
           />
         </CardActions>
         <NewUserTableForm open={this.state.open} newRow={this.newRow} onClose={this.handleClose} />
