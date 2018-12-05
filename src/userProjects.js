@@ -2,25 +2,9 @@
 import React from 'react';
 import 'react-tabulator/lib/css/bootstrap/tabulator_bootstrap.min.css';
 import { ReactTabulator } from 'react-tabulator';
-import Button from '@material-ui/core/Button';
-import Avatar from '@material-ui/core/Avatar';
 import NewUserTableForm from './newUserTableForm';
 import { db } from './fire_init';
-import {
-  Modal,
-  Typography,
-  TextField,
-  Chip,
-  Card,
-  CardContent,
-  CardActions,
-  TablePagination,
-  Select,
-  InputLabel,
-  Input,
-  MenuItem,
-  FormControl
-} from '@material-ui/core';
+import { Card, CardContent, CardActions } from '@material-ui/core';
 import { withStyles } from '@material-ui/core/styles';
 import {
   Save,
@@ -127,7 +111,7 @@ class UserProjects extends React.Component {
             variant={this.state.edit ? 'default' : 'outlined'}
             label={this.state.edit ? 'Diavtivate Edit' : 'Enable Edit'}
             onClick={this.edit}
-            clickable = {true}
+            clickable={true}
           />
           <AvChip
             cAr={['indigo', 400, 600]}
@@ -136,7 +120,7 @@ class UserProjects extends React.Component {
             onClick={this.copyAll}
             label="Copy all"
             hide={this.state.edit}
-            clickable = {true}
+            clickable={true}
           />
           <AvChip
             cAr={['indigo', 400, 600]}
@@ -145,7 +129,7 @@ class UserProjects extends React.Component {
             onClick={this.copySelected}
             label="Copy Selected"
             hide={this.state.edit}
-            clickable = {true}
+            clickable={true}
           />
           <AvChip
             cAr={['indigo', 400, 600]}
@@ -154,7 +138,7 @@ class UserProjects extends React.Component {
             label="Add"
             variant="outlined"
             hide={!this.state.edit}
-            clickable = {true}
+            clickable={true}
           />
           <AvChip
             cAr={this.state.selectedRows.length > 0 ? ['indigo', 400, 700] : ['grey', 500, 700]}
@@ -163,7 +147,7 @@ class UserProjects extends React.Component {
             label="Delete Selected"
             variant="outlined"
             hide={!this.state.edit}
-            clickable = {this.state.selectedRows.length > 0 }
+            clickable={this.state.selectedRows.length > 0}
           />
           <AvChip
             cAr={this.state.paste ? ['indigo', 400, 700] : ['grey', 500, 700]}
@@ -172,7 +156,7 @@ class UserProjects extends React.Component {
             label="Enable Paste"
             variant={this.state.paste ? 'default' : 'outlined'}
             hide={!this.state.edit}
-            clickable = {true}
+            clickable={true}
           />
           <AvChip
             cAr={this.state.pendingUpdate.length > 0 ? ['indigo', 400, 700] : ['grey', 500, 700]}
@@ -182,7 +166,7 @@ class UserProjects extends React.Component {
             variant={this.state.pendingUpdate.length > 0 ? 'default' : 'outlined'}
             hide={!this.state.edit}
             disabled={this.state.pendingUpdate.length > 0}
-            clickable = {this.state.pendingUpdate.length> 0}
+            clickable={this.state.pendingUpdate.length > 0}
           />
           <AvChip
             cAr={['grey', 500, 700]}
@@ -190,7 +174,7 @@ class UserProjects extends React.Component {
             label="Update from file <Comming Soon>"
             variant="outlined"
             hide={!this.state.edit}
-            clickable = {true}
+            clickable={true}
           />
         </CardActions>
         <NewUserTableForm open={this.state.open} newRow={this.newRow} onClose={this.handleClose} />
@@ -332,7 +316,7 @@ class UserProjects extends React.Component {
       for (let x in pendingUpdate) {
         if (pendingUpdate[x][pendingUpdate[x].sap_id] === 0) {
           // Delete the user
-          var deleteRef = db.collection('cities').doc(pendingUpdate[x].sap_id);
+          var deleteRef = db.collection('users').doc(pendingUpdate[x].sap_id);
           batch.delete(deleteRef);
         } else {
           var userRef = db.collection('users').doc(pendingUpdate[x].sap_id);
@@ -428,96 +412,6 @@ const columns = [
     align: 'center',
     width: 100,
     accessorClipboard: true
-  }
-];
-const data = [
-  {
-    client: 'Client 1',
-    name: 'Jon Doe',
-    project: 'Project 1',
-    project_code: 'c/00000000',
-    rm_sap_id: '11111111',
-    sap_id: '00000000'
-  },
-  {
-    client: 'Client 1',
-    name: 'Jhon Doe',
-    project: 'Project 1',
-    project_code: 'c/00000000',
-    rm_sap_id: '11111111',
-    sap_id: '00000001'
-  },
-  {
-    client: 'Client 1',
-    name: 'Jhon Doe',
-    project: 'Project 1',
-    project_code: 'c/00000000',
-    rm_sap_id: '11111111',
-    sap_id: '00000002'
-  },
-  {
-    client: 'Client 1',
-    name: 'Jhon Doe',
-    project: 'Project 1',
-    project_code: 'c/00000000',
-    rm_sap_id: '11111111',
-    sap_id: '00000003'
-  },
-  {
-    client: 'Client 1',
-    name: 'Jhon Doe',
-    project: 'Project 1',
-    project_code: 'c/00000000',
-    rm_sap_id: '11111111',
-    sap_id: '00000004'
-  },
-  {
-    client: 'Client 1',
-    name: 'Jhon Doe',
-    project: 'Project 1',
-    project_code: 'c/00000000',
-    rm_sap_id: '11111111',
-    sap_id: '00000005'
-  },
-  {
-    client: 'Client 1',
-    name: 'Jhon Doe',
-    project: 'Project 1',
-    project_code: 'c/00000000',
-    rm_sap_id: '11111111',
-    sap_id: '00000006'
-  },
-  {
-    client: 'Client 1',
-    name: 'Jhon Doe',
-    project: 'Project 1',
-    project_code: 'c/00000000',
-    rm_sap_id: '11111111',
-    sap_id: '00000007'
-  },
-  {
-    client: 'Client 1',
-    name: 'Jhon Doe',
-    project: 'Project 1',
-    project_code: 'c/00000000',
-    rm_sap_id: '11111111',
-    sap_id: '00000008'
-  },
-  {
-    client: 'Client 1',
-    name: 'Jhon Doe',
-    project: 'Project 1',
-    project_code: 'c/00000000',
-    rm_sap_id: '11111111',
-    sap_id: '00000009'
-  },
-  {
-    client: 'Client 1',
-    name: 'Jhon Doe',
-    project: 'Project 1',
-    project_code: 'c/00000000',
-    rm_sap_id: '11111111',
-    sap_id: '00000010'
   }
 ];
 //#endregion

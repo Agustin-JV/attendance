@@ -1,5 +1,38 @@
 // @ts-check
+/**
+ * @template T
+ * @param {T} leadArray
+ * @param {T} secondArray
+ * @param {string}[key]
+ * @return {T}
+ * */
 export function mergeArrays(leadArray, secondArray, key) {
+  if (key === null) return mergeSimpleArrays(leadArray, secondArray);
+  else return mergeObjArrays(leadArray, secondArray, key);
+}
+
+/**
+ * @template T
+ * @param {T} leadArray
+ * @param {T} secondArray
+ * @return {T}
+ * */
+export function mergeSimpleArrays(leadArray, secondArray) {
+  let h = {};
+  let n = [];
+  leadArray.concat(secondArray).map(function(b) {
+    h[b] = h[b] || n.push(b);
+  });
+  return n;
+}
+/**
+ * @template T
+ * @param {T} leadArray
+ * @param {T} secondArray
+ * @param {string} key
+ * @return {T}
+ * */
+export function mergeObjArrays(leadArray, secondArray, key) {
   let h = {};
   let n = [];
   leadArray.concat(secondArray).map(function(b) {
@@ -7,6 +40,13 @@ export function mergeArrays(leadArray, secondArray, key) {
   });
   return n;
 }
+/**
+ * @template T
+ * @param {T} leadArray
+ * @param {T} secondArray
+ * @param {string[]} keys
+ * @return {T}
+ * */
 export function mergeArraysMultyKey(leadArray, secondArray, keys) {
   let h = {};
   let n = [];
@@ -33,21 +73,21 @@ export function mergeArraysMultyKey(leadArray, secondArray, keys) {
     return row;
   });
 */
-export function arrayMatchPatterns(array, patterns){
-  for(let x in patterns){
-    if(!arrayMatchPattern(array,patterns[x])){
-      return false
+export function arrayMatchPatterns(array, patterns) {
+  for (let x in patterns) {
+    if (!arrayMatchPattern(array, patterns[x])) {
+      return false;
     }
   }
-  return true
+  return true;
 }
-export function arrayMatchPattern(array, pattern){
-  for(let x in array){
-    if(typeof(array[x]) !== pattern[x] && pattern[x] !== 'any'){
-      return false
+export function arrayMatchPattern(array, pattern) {
+  for (let x in array) {
+    if (typeof array[x] !== pattern[x] && pattern[x] !== 'any') {
+      return false;
     }
   }
-  return true
+  return true;
 }
 export function isEmpty(obj) {
   // null and undefined are "empty"

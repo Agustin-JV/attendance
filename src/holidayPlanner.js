@@ -1,3 +1,4 @@
+//@ts-check
 //#region Imports
 import React from 'react';
 import moment from 'moment';
@@ -5,33 +6,61 @@ import { withStyles } from '@material-ui/core/styles';
 import BigCalendar from 'react-big-calendar';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import * as colors from '@material-ui/core/colors';
-import { Clear, Add, Forward } from '@material-ui/icons';
-import {
-  Fab,
-  Grid,
-  Typography,
-  CardContent,
-  CardActions,
-  IconButton,
-  Card,
-  MenuItem,
-  Button,
-  FormGroup,
-  Select,
-  FormControl,
-  TextField,
-  InputLabel,
-  CircularProgress
-} from '@material-ui/core';
+import { Clear, Add, Forward, Save } from '@material-ui/icons';
+import { Grid, IconButton, Card, MenuItem, CircularProgress, TextField } from '@material-ui/core';
 import AvChip from './avatarChip';
 import { handleFile, XLSX } from './loadXlsx';
-import { mergeArrays, mergeArraysMultyKey, isAny, isEmpty, arrayMatchPatterns } from './utils';
+import { db } from './fire_init';
+import { mergeArrays, isAny, isEmpty, arrayMatchPatterns } from './utils';
+import { getDocument } from './fbGetPaginatedData';
+//#endregion
+
+//#region TS annotations
+/**
+ * @typedef   {Object}          HollydayEvent
+ * @property  {string | number} id
+ * @property  {string}          title
+ * @property  {Date}            start
+ * @property  {Date}            end
+ * @property  {boolean}         allDay
+ * @property  {string}          desc
+ * @property  {boolean}         official
+ * @property  {string}          color
+ */
+
+/**
+ * @typedef   {Object}  HolidayObject
+ * @property  {string}  name
+ * @property  {Date}    date
+ * @property  {boolean} official
+ * @property  {boolean} [del]
+ */
+
+/**
+ * @typedef {{[year:number]:HolidayObject[]}}  HolidayObjectArr
+ */
+
+/**
+ * @typedef  {Object}           State
+ * @property {moment}           date
+ * @property {string}           view
+ * @property {boolean}          openNewEvent
+ * @property {string}           newEventName
+ * @property {string}           newEventDate
+ * @property {boolean}          newEventType
+ * @property {HolidayObjectArr} holidays
+ * @property {number[]}         pendingUpdate
+ * @property {HollydayEvent[]}  eventHolidays
+ * @property {boolean}          loading
+ */
 //#endregion
 
 const localizer = BigCalendar.momentLocalizer(moment);
 class HolydayPlanner extends React.Component {
   constructor(props) {
     super(props);
+
+    /** @type {State} */
     this.state = {
       date: moment(new Date()),
       view: 'month',
@@ -39,15 +68,19 @@ class HolydayPlanner extends React.Component {
       newEventName: '',
       newEventDate: '',
       newEventType: false,
-      holidays: [],
-      holidaysUpdate: [],
+      holidays: {},
+      pendingUpdate: [],
       eventHolidays: [],
-      loading: false
+      loading: false,
+      loadingSave: false,
+      lastEntry:null
     };
     //this.emailRef = React.createRef();
   }
   bigCalendar = null;
-  componentDidMount() {}
+  componentDidMount() {
+    this.getShifstsData((new Date()).getFullYear())
+  }
 
   onToggleNewEvent = () => {
     this.setState({
@@ -55,7 +88,7 @@ class HolydayPlanner extends React.Component {
     });
   };
   render() {
-    const { eventHolidays, loading } = this.state;
+    const { eventHolidays, loading,loadingSave } = this.state;
     let { classes } = this.props;
     return (
       <Card style={{ minWidth: 500 }}>
@@ -102,7 +135,7 @@ class HolydayPlanner extends React.Component {
               avatar={<Add />}
               label="Add New event"
               onClick={this.onToggleNewEvent}
-              clickable = {true}
+              clickable={true}
             />{' '}
             <input
               accept=".xlsx"
@@ -113,15 +146,22 @@ class HolydayPlanner extends React.Component {
               onChange={this.loadFile}
             />
             <label htmlFor="contained-button-file">
-              {loading && <CircularProgress size={35} className={classes.fabProgress} />}
               <AvChip
                 color={'blue'}
                 avatar={<Forward style={{ transform: 'rotate(-90deg)' }} />}
                 label="Upload file"
                 loading={loading}
-                clickable = {true}
+                clickable={true}
               />
-            </label>
+            </label>{' '}
+            <AvChip
+              color={'blue'}
+              avatar={<Save />}
+              label="Save"
+              onClick={this.saveHolydays}
+              loading={loadingSave}
+              clickable={this.state.pendingUpdate.length>0}
+            />
           </Grid>
           {this.state.openNewEvent ? (
             <Grid
@@ -180,16 +220,16 @@ class HolydayPlanner extends React.Component {
     handleFile(this.fileCallback)(e);
   };
   fileCallback = wb => {
-    if(wb !== undefined ){
+    if (wb !== undefined) {
       var ws = wb.Sheets[wb.SheetNames[0]];
       var data = XLSX.utils.sheet_to_json(ws, {
         header: 1
       });
       this.processData(data);
-    }else{
+    } else {
       this.setState({
-      loading: false
-    });
+        loading: false
+      });
     }
   };
   processData = data => {
@@ -271,11 +311,20 @@ class HolydayPlanner extends React.Component {
       </Grid>
     );
   };
+  /**
+   * @param {string} id its the date of the event
+   * using the id calls deleteHoliday 
+   */
   onDelete = id => () => {
-    console.log('Delete ' + id);
+    console.log(id)
+    this.deleteHoliday(this.getUTCDateFromString(id))
   };
   //#endregion
 
+  /**
+   * @param {HolidayObject} holiday 
+   * @return {HollydayEvent} holiday event
+   */
   buildEvents = holiday => {
     let color = holiday.official ? 'green' : 'indigo';
     let shade = holiday.official ? 400 : 300;
@@ -283,7 +332,7 @@ class HolydayPlanner extends React.Component {
     let day = holiday.date.getUTCDate();
     let month = holiday.date.getUTCMonth();
     return {
-      id: [year, month, day].join('-'),
+      id: [year, month+1, day].join('-'),
       title: holiday.name,
       start: new Date(year, month, day),
       end: new Date(year, month, day, 23),
@@ -293,10 +342,41 @@ class HolydayPlanner extends React.Component {
       color: colors[color][shade]
     };
   };
+  /**@param {Date} date */
+  deleteHoliday = date => {
+    let { holidays, pendingUpdate } = this.state;
+    let year = date.getUTCFullYear();
+    let idx = holidays[year].findIndex(obj =>{ return obj.date.getTime() === date.getTime()})
+    holidays[year].splice(idx,1)
+    pendingUpdate = mergeArrays([year], pendingUpdate );
+    
+    this.setState({
+      holidays,
+      pendingUpdate
+    },()=>{this.buildEventHolidays();});
+  }
+
+  buildEventHolidays = () => {
+    let { holidays } = this.state;
+    let eventHolidays = []
+    for(let year in holidays){
+      eventHolidays = eventHolidays.concat(holidays[year].map(this.buildEvents));
+    }
+    this.setState({ eventHolidays });
+  }
+  /**
+   * @param {string} date 
+   * @example 'yyyy-mm-dd'
+   * @example '2018-12-31'
+   * @return {Date} UTC Date
+   */
+  getUTCDateFromString = date => {
+    let d = date.split('-');
+    return new Date(Date.UTC(d[0], d[1] - 1, d[2]));
+  }
   onAddEvent = () => {
     const { newEventName, newEventDate, newEventType } = this.state;
-    let date = newEventDate.split('-');
-    let utcDate = new Date(Date.UTC(date[0], date[1] - 1, date[2]));
+    let utcDate = this.getUTCDateFromString(newEventDate)
     console.log(utcDate);
     this.addHoliday({
       name: newEventName,
@@ -310,16 +390,77 @@ class HolydayPlanner extends React.Component {
       openNewEvent: false
     });
   };
-
+  /**@param {HolidayObject} holiday */
   addHoliday = holiday => {
-    let { holidays, holidaysUpdate } = this.state;
-    holidays = mergeArrays([holiday], holidays, 'date');
-    holidaysUpdate = mergeArrays([holiday], holidaysUpdate, 'date');
-    let eventHolidays = holidays.map(this.buildEvents);
+    let { holidays, pendingUpdate } = this.state;
+    let year = holiday.date.getUTCFullYear();
+
+    holidays[year] = mergeArrays([holiday], holidays[year]||[], 'date');
+    pendingUpdate = mergeArrays([holiday.date.getUTCFullYear()], pendingUpdate, );
+    
     this.setState({
       holidays,
-      holidaysUpdate,
-      eventHolidays
+      pendingUpdate
+    },()=>{this.buildEventHolidays();});
+  };
+  /**
+   * Sends to Firebase the changes on the events
+   * made on the editor or by uploading a file
+   * if there is any **pendingUpdate** on the sate
+   */
+  saveHolydays = () => {
+    const { pendingUpdate, holidays } = this.state;
+
+    if (pendingUpdate && pendingUpdate.length > 0) {
+    this.setState({ pendingUpdate: [] ,loadingSave:true});
+      // Get a new write batch
+      
+      var batch = db.batch();
+
+      pendingUpdate.forEach(year => {
+        var holidaysRef = db.collection('holidays').doc(year.toString());
+        batch.set(holidaysRef, {h:holidays[year]});
+      });
+
+      // Commit the batch
+      batch.commit().then(this.saveSuccess);
+    }
+  };
+  saveSuccess=()=>{
+    this.setState({loadingSave:false});
+    //console.log('succesfull save');
+  }
+  /**
+   * @param {number} year
+   */
+  getShifstsData = (year) => {
+    getDocument('holidays',year.toString(), this.processHolidaysQuery, year);
+  };
+ 
+  /**
+   * @param {any} snapshot
+   * @param {number} year
+   * @return {Promise} emty
+   */
+  processHolidaysQuery = (document, year) => {
+
+    let data = document.data().h.map(holiday => {
+      return  { date: holiday.date.toDate(), name:holiday.name, official: holiday.official}
+    });
+    let { holidays } = this.state;
+
+    holidays[year] = data
+
+    return new Promise(resolve => {
+      this.setState(
+        {
+          holidays: holidays,
+        },
+        () => {
+          this.buildEventHolidays();
+          resolve();
+        }
+      );
     });
   };
 }
@@ -365,69 +506,6 @@ const eventType = [
   {
     value: false,
     label: 'Non - Official'
-  }
-];
-const event = [
-  {
-    id: 1,
-    title: 'Birthday',
-    start: new Date(2018, 11, 3),
-    end: new Date(2018, 11, 3, 23),
-    allDay: true,
-    desc: 'Official',
-    official: true,
-    color: colors['green'][400]
-  },
-  {
-    id: '2as',
-    title: 'Party Hour',
-    start: new Date(2018, 11, 12, 12, 0, 0, 0),
-    end: new Date(2018, 11, 12, 12, 30, 0, 0),
-    allDay: true,
-    desc: 'Most important meal of the day',
-    color: colors['indigo'][300]
-  }
-];
-const hollydays = [
-  {
-    name: 'Año nuevo',
-    date: new Date(Date.UTC(2018, 1, 1)),
-    official: true
-  },
-  {
-    name: 'Dia de la Constitucion',
-    date: new Date(Date.UTC(2018, 2, 5)),
-    official: true
-  },
-  {
-    name: 'Natalicio de Benito Juárez',
-    date: new Date(Date.UTC(2018, 3, 19)),
-    official: true
-  },
-  {
-    name: 'Día del Trabajo',
-    date: new Date(Date.UTC(2018, 5, 1)),
-    official: true
-  },
-  {
-    name: 'Día de la Independencia',
-    date: new Date(Date.UTC(2018, 9, 16)),
-    official: true
-  },
-  {
-    name: 'Revolución Mexicana',
-    date: new Date(Date.UTC(2018, 11, 19)),
-    official: true
-  },
-  {
-    name: 'Nuevo Precidente',
-    date: new Date(Date.UTC(2018, 12, 1)),
-    official: true
-  },
-  {
-    name: 'Navidad',
-    date: new Date(Date.UTC(2018, 12, 25)),
-    official: true
   }
 ];
 export default withStyles(styles)(HolydayPlanner);

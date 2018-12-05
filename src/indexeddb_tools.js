@@ -181,7 +181,7 @@ export function get(recipe, key) {
  * it check on the spesified index if there are any coinidence for the update.
  * returns the its key.
  * @param {Object} object  the new data you want to add. or update.
- * @param {Object} query   example user.name or [index1:a,idnex2:b,...].
+ * @param {Object} query   example user.name or **only for compound keys**-> [index1:a,idnex2:b,...] .
  * @param {Object} recipe  of the object.
  * @param {String} index   the index on witch to preform the query.
  * @return {String} key

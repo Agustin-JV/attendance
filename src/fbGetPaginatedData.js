@@ -10,8 +10,57 @@ import { isEmpty } from './utils';
  * @param {function} callback should implement a promice that returns with no arguments  like -> return new Promise((resolve) => { resolve();})
  * @param {...args} args they will be passed to the callback
  */
+export const getDocument = async (collection, doc, callback, ...args) => {
+  let fresh = await isCacheFresh(collection+ '-'+doc);
+  if (fresh) {
+    db.collection(collection)
+      .doc(doc)
+      .get({ source: 'cache' })
+      .then(processDocumentQuery(getData, collection, doc, callback, ...args), error => {
+        console.log(getData, error);
+      });
+  } else {
+    db.collection(collection)
+      .doc(doc)
+      .get()
+      .then(processDocumentQuery(getData, collection, doc, callback, ...args), error => {
+        console.log(getData, error);
+      });
+  }
+};
+const processDocumentQuery = (caller, collection, doc, callback, ...args) => querySnapshot => {
+  let empty = querySnapshot.empty;
+  let fromCache = querySnapshot.metadata.fromCache;
+
+  if (!fromCache) {
+    let path_pos = ""+collection+"-"+doc;
+    addUpdate(
+      { path_pos: path_pos, path: collection, retrieve_date: Date.now() },
+      path_pos,
+      table_structures.attendancefb.object_stores.scheduler,
+      'path_pos'
+    );
+  }
+
+  callback(querySnapshot, ...args).then(() => {
+    if (fromCache && empty) {
+      db.collection(collection)
+        .doc(doc)
+        .get()
+        .then(processQuery(getData, collection, doc, callback, ...args), error => {
+          console.log('goLive begining', error);
+        });
+    }
+  });
+};
+
+/**
+ * @param {String} collection the path to find the collection
+ * @param {function} callback should implement a promice that returns with no arguments  like -> return new Promise((resolve) => { resolve();})
+ * @param {...args} args they will be passed to the callback
+ */
 export const getData = async (collection, callback, ...args) => {
-  let fresh = await isCacheFresh(collection, '-1');
+  let fresh = await isCacheFresh(""+collection+ '--1');
   if (fresh) {
     db.collection(collection)
       .limit(50)
@@ -37,9 +86,10 @@ const processQuery = (caller, collection, callback, lastRow, ...args) => querySn
   lastRow = lastVisible !== undefined ? lastVisible : lastRow;
   lr = lr ? lr.id : '-1';
   if (!fromCache && lr) {
+    let path_pos = ''+collection+'-'+lr;
     addUpdate(
-      { path: collection, after: lr, retrieve_date: Date.now() },
-      [collection, lr],
+      {path_pos:path_pos, path: collection, after: lr, retrieve_date: Date.now() },
+      path_pos,
       table_structures.attendancefb.object_stores.scheduler,
       'path_pos'
     );
@@ -66,7 +116,7 @@ const goLive = (collection, fromCache, empty, caller, callback, lastRow, ...args
       db.collection(collection)
         .limit(50)
         .get()
-        .then(processQuery(getData, collection, callback, ...args), error => {
+        .then(processQuery(getData, collection, callback, null, ...args), error => {
           console.log('goLive begining', error);
         });
     }
@@ -80,8 +130,7 @@ const goLive = (collection, fromCache, empty, caller, callback, lastRow, ...args
  */
 export const getMoreData = async (collection, callback, lastRow, ...args) => {
   if (lastRow !== null && lastRow !== undefined) {
-    let fresh = await isCacheFresh(collection, lastRow.id);
-    console.log('fresh', fresh);
+    let fresh = await isCacheFresh(""+collection+'-'+ lastRow.id);
     if (fresh) {
       db.collection(collection)
         .startAfter(lastRow)
@@ -100,9 +149,9 @@ export const getMoreData = async (collection, callback, lastRow, ...args) => {
   }
 };
 
-const isCacheFresh = async (collection, lastRow) => {
+const isCacheFresh = async (key) => {
   let record = await bounded.call(
-    { z: [collection, lastRow] },
+    { z: key },
     table_structures.attendancefb.object_stores.scheduler,
     'path_pos',
     'all'

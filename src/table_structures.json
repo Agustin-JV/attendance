@@ -63,10 +63,7 @@
         "keyPath": "id",
         "autoIncrement": true,
         "indices": {
-          "path_pos": {
-            "unique": true,
-            "indices": ["path", "after"]
-          },
+          "path_pos": false,
           "path": false,
           "after": false,
           "retrieve_date": false

@@ -2,7 +2,7 @@ import { basicTransaction } from './indexeddb_tools';
 /**
  * Makes a database request with bounds only call with call
  * call example: bounded.call({x:'a', y:'z',includeY:false},'someIndex');
- * x,y,z can be an array -> example 2: {z:[year, month, x + 1, userResponce]}
+ * x,y,z can be an array -> **only for compound keys** example 2: {z:[year, month, x + 1, userResponce]}
  * All keys from someIndex = x && < y
  * At least one of the following params is reqiered
  * @thisParam {string} x <= lowerBound
