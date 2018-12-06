@@ -8,7 +8,7 @@ import ShoppingCartIcon from '@material-ui/icons/ShoppingCart';
 import PeopleIcon from '@material-ui/icons/People';
 import BarChartIcon from '@material-ui/icons/BarChart';
 import LayersIcon from '@material-ui/icons/Layers';
-import { BeachAccess, EventNote, Unarchive } from '@material-ui/icons';
+import { BeachAccess, EventNote, Unarchive, Security } from '@material-ui/icons';
 import AssignmentIcon from '@material-ui/icons/Assignment';
 import { Route } from 'react-router-dom';
 import { withRouter } from 'react-router-dom';
@@ -67,12 +67,14 @@ export const secondaryListItems = (
       </ListItemIcon>
       <ListItemText primary="Current month" />
     </ListItem>
-    <ListItem button>
-      <ListItemIcon>
-        <AssignmentIcon />
-      </ListItemIcon>
-      <ListItemText primary="Last quarter" />
-    </ListItem>
+    <Link to="/security">
+      <ListItem button>
+        <ListItemIcon>
+          <Security />
+        </ListItemIcon>
+        <ListItemText primary="Security" />
+      </ListItem>
+    </Link>
     <Link to="/holidays">
       <ListItem button>
         <ListItemIcon>

@@ -3,6 +3,7 @@ import { bounded } from './idb_querys';
 import { addUpdate } from './indexeddb_tools';
 import table_structures from './table_structures.json';
 import { isEmpty } from './utils';
+import { detectIE } from './detectBrowser';
 //TODO look on an idb the last time x collection was searched so if its a while ago insted of cache first go for live first
 
 /**
@@ -11,7 +12,7 @@ import { isEmpty } from './utils';
  * @param {...args} args they will be passed to the callback
  */
 export const getDocument = async (collection, doc, callback, ...args) => {
-  let fresh = await isCacheFresh(collection+ '-'+doc);
+  let fresh = await isCacheFresh(collection + '-' + doc);
   if (fresh) {
     db.collection(collection)
       .doc(doc)
@@ -31,9 +32,8 @@ export const getDocument = async (collection, doc, callback, ...args) => {
 const processDocumentQuery = (caller, collection, doc, callback, ...args) => querySnapshot => {
   let empty = querySnapshot.empty;
   let fromCache = querySnapshot.metadata.fromCache;
-
   if (!fromCache) {
-    let path_pos = ""+collection+"-"+doc;
+    let path_pos = '' + collection + '-' + doc;
     addUpdate(
       { path_pos: path_pos, path: collection, retrieve_date: Date.now() },
       path_pos,
@@ -60,7 +60,8 @@ const processDocumentQuery = (caller, collection, doc, callback, ...args) => que
  * @param {...args} args they will be passed to the callback
  */
 export const getData = async (collection, callback, ...args) => {
-  let fresh = await isCacheFresh(""+collection+ '--1');
+  let fresh = await isCacheFresh('' + collection + '--1');
+  //console.log('getData, fresh', fresh, collection);
   if (fresh) {
     db.collection(collection)
       .limit(50)
@@ -79,6 +80,7 @@ export const getData = async (collection, callback, ...args) => {
 };
 
 const processQuery = (caller, collection, callback, lastRow, ...args) => querySnapshot => {
+  //console.log(caller, collection, querySnapshot);
   let empty = querySnapshot.empty;
   let fromCache = querySnapshot.metadata.fromCache;
   let lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
@@ -86,9 +88,9 @@ const processQuery = (caller, collection, callback, lastRow, ...args) => querySn
   lastRow = lastVisible !== undefined ? lastVisible : lastRow;
   lr = lr ? lr.id : '-1';
   if (!fromCache && lr) {
-    let path_pos = ''+collection+'-'+lr;
+    let path_pos = '' + collection + '-' + lr;
     addUpdate(
-      {path_pos:path_pos, path: collection, after: lr, retrieve_date: Date.now() },
+      { path_pos: path_pos, path: collection, after: lr, retrieve_date: Date.now() },
       path_pos,
       table_structures.attendancefb.object_stores.scheduler,
       'path_pos'
@@ -130,7 +132,7 @@ const goLive = (collection, fromCache, empty, caller, callback, lastRow, ...args
  */
 export const getMoreData = async (collection, callback, lastRow, ...args) => {
   if (lastRow !== null && lastRow !== undefined) {
-    let fresh = await isCacheFresh(""+collection+'-'+ lastRow.id);
+    let fresh = await isCacheFresh('' + collection + '-' + lastRow.id);
     if (fresh) {
       db.collection(collection)
         .startAfter(lastRow)
@@ -149,7 +151,10 @@ export const getMoreData = async (collection, callback, lastRow, ...args) => {
   }
 };
 
-const isCacheFresh = async (key) => {
+const isCacheFresh = async key => {
+  if (detectIE() !== false) {
+    return false;
+  }
   let record = await bounded.call(
     { z: key },
     table_structures.attendancefb.object_stores.scheduler,

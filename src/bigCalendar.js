@@ -14,7 +14,7 @@ import ShiftSelect from './shiftSelect';
 import AvChip from './avatarChip';
 import Pagination from './pagination';
 import { mergeArrays, mergeArraysMultyKey, isAny } from './utils';
-import { getData, getMoreData } from './fbGetPaginatedData';
+import { getData, getMoreData, getDocument } from './fbGetPaginatedData';
 import shift_colors from './shift_colors.json';
 //#endregion
 
@@ -66,10 +66,12 @@ class BigCalendar extends Component {
       pendingSave: true,
       rowsPerPage: 5,
       page: 1,
+      loading: { load: false },
       pendingUpdate: [],
       visibleUsers: [],
       users: [],
       entrys: [],
+      holidays: {},
       startDate: {
         year: moment().get('year'),
         month: moment().get('month') + 1
@@ -81,8 +83,12 @@ class BigCalendar extends Component {
     };
   }
   paginationRef = null;
-
-  // #region render
+  setLoading(key, value) {
+    let { loading } = this.state;
+    loading[key] = value;
+    this.setState({ loading });
+  }
+  //#region render
   render() {
     const { viewModel, open } = this.state;
     const { classes } = this.props;
@@ -181,7 +187,8 @@ class BigCalendar extends Component {
       </CardActions>
     );
   };
-  // #endregion
+  //#endregion
+
   activateOptions = () => {
     let { newEvent, currentEvent } = this.state;
     let actual = newEvent || currentEvent;
@@ -198,10 +205,10 @@ class BigCalendar extends Component {
   };
   componentDidMount = () => {
     this.getShifts();
+    this.getHolidaysData(new Date().getFullYear());
   };
   onGoLast = () => {
     this.getMoreShifts();
-    this.loadHollydays();
   };
   handleChangePage = page => {
     this.getVisibleUsers(page, this.state.rowsPerPage);
@@ -247,38 +254,92 @@ class BigCalendar extends Component {
   prevClick = schedulerData => {
     schedulerData.prev();
     this.onScheduleChange(schedulerData);
+    this.calcHolidays(schedulerData);
   };
+
   nextClick = schedulerData => {
     schedulerData.next();
     this.onScheduleChange(schedulerData);
+    this.calcHolidays(schedulerData);
   };
+
+  calcHolidays = schedulerData => {
+    let { startDate, endDate } = schedulerData;
+    let [start, end] = [new Date(startDate), new Date(endDate)];
+    const { holidays } = this.state;
+    let activeHolidays = [];
+    holidays[start.getFullYear()].forEach(holiday => {
+      if (holiday.date >= start && holiday.date <= end) {
+        activeHolidays.push(holiday);
+      }
+    });
+    if (activeHolidays.length > 0) {
+      let renderData = schedulerData.renderData;
+      renderData.forEach(slot => {
+        slot.headerItems.forEach(day => {
+          let date = new Date(day.start);
+          let holiday = false;
+          activeHolidays.forEach(_holiday => {
+            if (date.getDate() === _holiday.date.getUTCDate()) holiday = _holiday;
+          });
+          if (holiday) {
+            let event = day.events[0];
+            if (event !== undefined) {
+              console.log(
+                'eval event',
+                slot.slotId,
+                'evnet',
+                event,
+                new Date(event.eventItem.start)
+              );
+            } else {
+              console.log('Add holiday');
+            }
+          }
+        });
+      });
+    }
+  };
+
   onScheduleChange = schedulerData => {
     let startDate = new Date(schedulerData.startDate);
     let endDate = new Date(schedulerData.endDate);
     schedulerData.setEvents(this.state.entrys);
-    this.setState({
-      viewModel: schedulerData,
-      startDate: {
-        year: startDate.getUTCFullYear(),
-        month: startDate.getUTCMonth()
+    this.setState(
+      {
+        viewModel: schedulerData,
+        startDate: {
+          year: startDate.getUTCFullYear(),
+          month: startDate.getUTCMonth()
+        },
+        endDate: {
+          year: endDate.getUTCFullYear(),
+          month: endDate.getUTCMonth()
+        }
       },
-      endDate: {
-        year: endDate.getUTCFullYear(),
-        month: endDate.getUTCMonth()
+      () => {
+        this.calcHolidays(schedulerData);
       }
-    });
+    );
   };
   onViewChange = (schedulerData, view) => {
     schedulerData.setViewType(view.viewType, view.showAgenda, view.isEventPerspective);
     schedulerData.setEvents(this.state.entrys);
-    this.setState({
-      viewModel: schedulerData
-    });
+    this.setState(
+      {
+        viewModel: schedulerData
+      },
+      () => {
+        this.calcHolidays(schedulerData);
+      }
+    );
   };
   onSelectDate = (schedulerData, date) => {
     schedulerData.setDate(date);
     schedulerData.setEvents(this.state.entrys);
-    this.setState({ viewModel: schedulerData });
+    this.setState({ viewModel: schedulerData }, () => {
+      this.calcHolidays(schedulerData);
+    });
   };
   ops1 = (schedulerData, event) => {
     if (event.editable) {
@@ -370,6 +431,7 @@ class BigCalendar extends Component {
   slotClickedFunc = (schedulerData, slot) => {
     //alert(`You just clicked a ${schedulerData.isEventPerspective ? 'task' : 'resource'}.{id: ${slot.slotId}, name: ${slot.slotName}}`);
     console.log(slot);
+    console.log('slotClickedFunc', this.state.entrys);
   };
   /*
     eventClicked = (schedulerData, event) => {
@@ -434,6 +496,7 @@ class BigCalendar extends Component {
    * @param {number} [month]
    */
   getShifstsData = (year, month) => {
+    console.log('getShifstsData', 'wsinf/' + year + '/' + month);
     let path = 'wsinf/' + year + '/' + month;
     getData(path, this.processShiftQuery, year, month);
   };
@@ -453,10 +516,13 @@ class BigCalendar extends Component {
    */
   processShiftQuery = (snapshot, year, month) => {
     let lastVisible = snapshot.docs[snapshot.docs.length - 1];
+    console.log(snapshot);
     let data = snapshot.docs.map(snapshot => {
+      console.log(snapshot);
       return this.groupSameAdjasentDays(snapshot.id, year, month, snapshot.data().m);
     });
     data = [].concat(...data);
+
     let { entrys, lastEntry } = this.state;
     entrys = mergeArrays(data, entrys, 'id');
     this.state.viewModel.setEvents(entrys);
@@ -488,8 +554,10 @@ class BigCalendar extends Component {
       if (days[x] !== null && days[x + 1] !== null && days[x] === days[x + 1]) {
         if (prev === -1) prev = x;
       } else {
-        if (days[x] !== '')
+        if (days[x] !== '' && days[x] !== null && days[x] !== undefined) {
+          //console.log('day',x)
           output.push(this.buildShift(sap_id, year, month, prev !== -1 ? prev : x, x, days[x]));
+        }
         prev = -1;
       }
     }
@@ -505,6 +573,7 @@ class BigCalendar extends Component {
    * @return {Object} result
    */
   buildShift = (sap_id, year, month, day1, day2, code) => {
+    //console.log(code,shift_colors[code])
     return {
       id: '' + sap_id + year + month + '-' + day1 + '-' + day2,
       start: year + '-' + month + '-' + day1 + ' 00:00:00',
@@ -629,20 +698,48 @@ class BigCalendar extends Component {
     return e;
   };
 
-  loadHollydays = () => {
-    console.log(this.state.viewModel.getSlots());
-    for (let i in hollydays) {
+  addHolidaysEvents = () => {
+    const { holidays, users } = this.state;
+    for (let idx in users) {
+      console.log(users[idx]);
+      for (let x in holidays) {
+      }
     }
+  };
 
-    /*return {
-      id: '' + sap_id + year + month + '-' + day1 + '-' + day2,
-      start: year + '-' + month + '-' + day1 + ' 00:00:00',
-      end: year + '-' + month + '-' + day2 + ' 23:59:59',
-      resourceId: sap_id,
-      title: code,
-      bgColor: colors[shift_colors[code]][800], // There most be a shift code not implemented if here is an error
-      editable: true
-    };*/
+  /**
+   * @param {number} year
+   */
+  getHolidaysData = year => {
+    this.setLoading('load', true);
+    getDocument('holidays', year.toString(), this.processHolidaysQuery, year);
+  };
+
+  /**
+   * @param {any} snapshot
+   * @param {number} year
+   * @return {Promise} emty
+   */
+  processHolidaysQuery = (document, year) => {
+    let data = document.data().h.map(holiday => {
+      return { date: holiday.date.toDate(), name: holiday.name, official: holiday.official };
+    });
+    let { holidays } = this.state;
+
+    holidays[year] = data;
+
+    return new Promise(resolve => {
+      this.setState(
+        {
+          holidays: holidays
+        },
+        () => {
+          console.log('implement build processHolidaysQuery'); //this.buildEventHolidays();
+          this.setLoading('load', false);
+          resolve();
+        }
+      );
+    });
   };
 }
 
@@ -662,54 +759,4 @@ const styles = theme => ({
   }
 });
 
-const hollydays = [
-  {
-    name: 'Año nuevo',
-    year: 2018,
-    day: 1,
-    month: 1
-  },
-  {
-    name: 'Dia de la Constitucion',
-    year: 2018,
-    day: 5,
-    month: 2
-  },
-  {
-    name: 'Natalicio de Benito Juárez',
-    year: 2018,
-    day: 19,
-    month: 3
-  },
-  {
-    name: 'Día del Trabajo',
-    year: 2018,
-    day: 1,
-    month: 5
-  },
-  {
-    name: 'Día de la Independencia',
-    year: 2018,
-    day: 16,
-    month: 9
-  },
-  {
-    name: 'Revolución Mexicana',
-    year: 2018,
-    day: 19,
-    month: 11
-  },
-  {
-    name: 'Nuevo Precidente',
-    year: 2018,
-    day: 1,
-    month: 12
-  },
-  {
-    name: 'Navidad',
-    year: 2018,
-    day: 25,
-    month: 12
-  }
-];
 export default withStyles(styles)(withDragDropContext(BigCalendar));

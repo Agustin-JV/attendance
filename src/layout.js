@@ -17,7 +17,7 @@ import NotificationsIcon from '@material-ui/icons/Notifications';
 import { mainListItems, secondaryListItems } from './listItems';
 import { Route } from 'react-router-dom';
 import firebase from './fire_init';
-import Emoji from './emoji';
+
 class Layout extends React.Component {
   constructor(props) {
     super(props);
@@ -36,7 +36,7 @@ class Layout extends React.Component {
 
   handleDrawerClose = () => {
     this.setState({
-      open: this.props.parentSate.open
+      open: false
     });
   };
   getTitle = path => {
@@ -53,6 +53,8 @@ class Layout extends React.Component {
         return 'Shift Reports 📊';
       case 'holidays':
         return 'Holidays 🏖️';
+      case 'security':
+        return 'Security 🛡️';
       default:
         return path;
     }

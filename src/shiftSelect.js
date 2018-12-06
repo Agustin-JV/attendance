@@ -98,6 +98,7 @@ class ShiftSelect extends Component {
           label={label}
           hide={hide}
           onClick={onClick ? onClick(code) : null}
+          clickable={true}
         />
       </Grid>
     );

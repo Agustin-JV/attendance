@@ -6,6 +6,7 @@ import BigCalendar from './bigCalendar';
 import Home from './home';
 import UserProjects from './userProjects';
 import HolydayPlanner from './holidayPlanner';
+import SecurityPannel from './securityPannel';
 const InApp = props => (
   <Router>
     <Layout auth={props.auth}>
@@ -13,6 +14,7 @@ const InApp = props => (
       <Route path="/wsinf" component={BigCalendar} />
       <Route path="/projects" component={UserProjects} />
       <Route path="/holidays" component={HolydayPlanner} />
+      <Route path="/security" component={SecurityPannel} />
     </Layout>
   </Router>
 );

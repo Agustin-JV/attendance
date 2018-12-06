@@ -71,24 +71,28 @@ class HolydayPlanner extends React.Component {
       holidays: {},
       pendingUpdate: [],
       eventHolidays: [],
-      loading: false,
-      loadingSave: false,
-      lastEntry:null
+      loading: {
+        save: false,
+        load: false,
+        upload: false
+      },
+      lastEntry: null
     };
     //this.emailRef = React.createRef();
   }
   bigCalendar = null;
-  componentDidMount() {
-    this.getShifstsData((new Date()).getFullYear())
-  }
 
+  componentDidMount() {
+    this.getHolidaysData(new Date().getFullYear());
+  }
+  componentWillUnmount() {}
   onToggleNewEvent = () => {
     this.setState({
       openNewEvent: !this.state.openNewEvent
     });
   };
   render() {
-    const { eventHolidays, loading,loadingSave } = this.state;
+    const { eventHolidays, loading } = this.state;
     let { classes } = this.props;
     return (
       <Card style={{ minWidth: 500 }}>
@@ -128,6 +132,11 @@ class HolydayPlanner extends React.Component {
                 }
               }}
             />
+            {loading['load'] ? (
+              <div style={{ position: 'relative' }}>
+                <CircularProgress style={{ position: 'absolute', left: 2, top: 2, zIndex: 1 }} />
+              </div>
+            ) : null}
           </Grid>
           <Grid item xs={12} style={{ paddingBottom: '10px' }}>
             <AvChip
@@ -150,7 +159,7 @@ class HolydayPlanner extends React.Component {
                 color={'blue'}
                 avatar={<Forward style={{ transform: 'rotate(-90deg)' }} />}
                 label="Upload file"
-                loading={loading}
+                loading={loading['upload']}
                 clickable={true}
               />
             </label>{' '}
@@ -159,8 +168,8 @@ class HolydayPlanner extends React.Component {
               avatar={<Save />}
               label="Save"
               onClick={this.saveHolydays}
-              loading={loadingSave}
-              clickable={this.state.pendingUpdate.length>0}
+              loading={loading['save']}
+              clickable={this.state.pendingUpdate.length > 0}
             />
           </Grid>
           {this.state.openNewEvent ? (
@@ -213,10 +222,14 @@ class HolydayPlanner extends React.Component {
       </Card>
     );
   }
+  setLoading(key, value) {
+    let { loading } = this.state;
+    loading[key] = value;
+    this.setState({ loading });
+  }
+
   loadFile = e => {
-    this.setState({
-      loading: true
-    });
+    this.setLoading('upload', true);
     handleFile(this.fileCallback)(e);
   };
   fileCallback = wb => {
@@ -227,9 +240,7 @@ class HolydayPlanner extends React.Component {
       });
       this.processData(data);
     } else {
-      this.setState({
-        loading: false
-      });
+      this.setLoading('upload', false);
     }
   };
   processData = data => {
@@ -255,9 +266,7 @@ class HolydayPlanner extends React.Component {
         }
       }
     }
-    this.setState({
-      loading: false
-    });
+    this.setLoading('upload', false);
   };
   onInputChange = name => event => {
     this.setState({
@@ -313,16 +322,16 @@ class HolydayPlanner extends React.Component {
   };
   /**
    * @param {string} id its the date of the event
-   * using the id calls deleteHoliday 
+   * using the id calls deleteHoliday
    */
   onDelete = id => () => {
-    console.log(id)
-    this.deleteHoliday(this.getUTCDateFromString(id))
+    console.log(id);
+    this.deleteHoliday(this.getUTCDateFromString(id));
   };
   //#endregion
 
   /**
-   * @param {HolidayObject} holiday 
+   * @param {HolidayObject} holiday
    * @return {HollydayEvent} holiday event
    */
   buildEvents = holiday => {
@@ -332,7 +341,7 @@ class HolydayPlanner extends React.Component {
     let day = holiday.date.getUTCDate();
     let month = holiday.date.getUTCMonth();
     return {
-      id: [year, month+1, day].join('-'),
+      id: [year, month + 1, day].join('-'),
       title: holiday.name,
       start: new Date(year, month, day),
       end: new Date(year, month, day, 23),
@@ -346,26 +355,33 @@ class HolydayPlanner extends React.Component {
   deleteHoliday = date => {
     let { holidays, pendingUpdate } = this.state;
     let year = date.getUTCFullYear();
-    let idx = holidays[year].findIndex(obj =>{ return obj.date.getTime() === date.getTime()})
-    holidays[year].splice(idx,1)
-    pendingUpdate = mergeArrays([year], pendingUpdate );
-    
-    this.setState({
-      holidays,
-      pendingUpdate
-    },()=>{this.buildEventHolidays();});
-  }
+    let idx = holidays[year].findIndex(obj => {
+      return obj.date.getTime() === date.getTime();
+    });
+    holidays[year].splice(idx, 1);
+    pendingUpdate = mergeArrays([year], pendingUpdate);
+
+    this.setState(
+      {
+        holidays,
+        pendingUpdate
+      },
+      () => {
+        this.buildEventHolidays();
+      }
+    );
+  };
 
   buildEventHolidays = () => {
     let { holidays } = this.state;
-    let eventHolidays = []
-    for(let year in holidays){
+    let eventHolidays = [];
+    for (let year in holidays) {
       eventHolidays = eventHolidays.concat(holidays[year].map(this.buildEvents));
     }
     this.setState({ eventHolidays });
-  }
+  };
   /**
-   * @param {string} date 
+   * @param {string} date
    * @example 'yyyy-mm-dd'
    * @example '2018-12-31'
    * @return {Date} UTC Date
@@ -373,10 +389,10 @@ class HolydayPlanner extends React.Component {
   getUTCDateFromString = date => {
     let d = date.split('-');
     return new Date(Date.UTC(d[0], d[1] - 1, d[2]));
-  }
+  };
   onAddEvent = () => {
     const { newEventName, newEventDate, newEventType } = this.state;
-    let utcDate = this.getUTCDateFromString(newEventDate)
+    let utcDate = this.getUTCDateFromString(newEventDate);
     console.log(utcDate);
     this.addHoliday({
       name: newEventName,
@@ -395,13 +411,18 @@ class HolydayPlanner extends React.Component {
     let { holidays, pendingUpdate } = this.state;
     let year = holiday.date.getUTCFullYear();
 
-    holidays[year] = mergeArrays([holiday], holidays[year]||[], 'date');
-    pendingUpdate = mergeArrays([holiday.date.getUTCFullYear()], pendingUpdate, );
-    
-    this.setState({
-      holidays,
-      pendingUpdate
-    },()=>{this.buildEventHolidays();});
+    holidays[year] = mergeArrays([holiday], holidays[year] || [], 'date');
+    pendingUpdate = mergeArrays([holiday.date.getUTCFullYear()], pendingUpdate);
+
+    this.setState(
+      {
+        holidays,
+        pendingUpdate
+      },
+      () => {
+        this.buildEventHolidays();
+      }
+    );
   };
   /**
    * Sends to Firebase the changes on the events
@@ -412,52 +433,55 @@ class HolydayPlanner extends React.Component {
     const { pendingUpdate, holidays } = this.state;
 
     if (pendingUpdate && pendingUpdate.length > 0) {
-    this.setState({ pendingUpdate: [] ,loadingSave:true});
+      this.setState({ pendingUpdate: [] }, () => {
+        this.setLoading('save', true);
+      });
       // Get a new write batch
-      
+
       var batch = db.batch();
 
       pendingUpdate.forEach(year => {
         var holidaysRef = db.collection('holidays').doc(year.toString());
-        batch.set(holidaysRef, {h:holidays[year]});
+        batch.set(holidaysRef, { h: holidays[year] });
       });
 
       // Commit the batch
       batch.commit().then(this.saveSuccess);
     }
   };
-  saveSuccess=()=>{
-    this.setState({loadingSave:false});
+  saveSuccess = () => {
+    this.setLoading('save', false);
     //console.log('succesfull save');
-  }
+  };
   /**
    * @param {number} year
    */
-  getShifstsData = (year) => {
-    getDocument('holidays',year.toString(), this.processHolidaysQuery, year);
+  getHolidaysData = year => {
+    this.setLoading('load', true);
+    getDocument('holidays', year.toString(), this.processHolidaysQuery, year);
   };
- 
+
   /**
    * @param {any} snapshot
    * @param {number} year
    * @return {Promise} emty
    */
   processHolidaysQuery = (document, year) => {
-
     let data = document.data().h.map(holiday => {
-      return  { date: holiday.date.toDate(), name:holiday.name, official: holiday.official}
+      return { date: holiday.date.toDate(), name: holiday.name, official: holiday.official };
     });
     let { holidays } = this.state;
 
-    holidays[year] = data
+    holidays[year] = data;
 
     return new Promise(resolve => {
       this.setState(
         {
-          holidays: holidays,
+          holidays: holidays
         },
         () => {
           this.buildEventHolidays();
+          this.setLoading('load', false);
           resolve();
         }
       );
