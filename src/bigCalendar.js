@@ -13,11 +13,32 @@ import { Save, Edit, Delete } from '@material-ui/icons';
 import ShiftSelect from './shiftSelect';
 import AvChip from './avatarChip';
 import Pagination from './pagination';
-import { mergeArrays, mergeArraysMultyKey, isAny } from './utils';
+import { mergeArrays, mergeArraysMultyKey, isAny,objectMap ,objectForEach} from './utils';
 import { getData, getMoreData, getDocument } from './fbGetPaginatedData';
 import shift_colors from './shift_colors.json';
 //#endregion
-
+//#region TS annotations
+/**
+ * @typedef  {Object}           State
+ * @property {Object}           viewModel
+ * @property {{}}           pendingUpdate
+ * @property {Array}          visibleUsers
+ * @property {Array}           users
+ * @property {Oject}           entrys
+ * @property {HolidayObjectArr} holidays
+ * @property {Object}          currentEvent
+ */
+/**
+ * @typedef   {Object}  HolidayObject
+ * @property  {string}  name
+ * @property  {Date}    date
+ * @property  {boolean} official
+ * @property  {boolean} [del]
+ */
+/**
+ * @typedef {{[year:number]:HolidayObject[]}}  HolidayObjectArr
+ */
+//#endregion
 class BigCalendar extends Component {
   constructor(props) {
     super(props);
@@ -56,6 +77,7 @@ class BigCalendar extends Component {
     schedulerData.localeMoment.locale('es-mx');
     //set events here or later,
     //the event array should be sorted in ascending order by event.start property, otherwise there will be some rendering errors
+    /** @type {State} */
     this.state = {
       viewModel: schedulerData,
       anchorEl: null,
@@ -67,10 +89,10 @@ class BigCalendar extends Component {
       rowsPerPage: 5,
       page: 1,
       loading: { load: false },
-      pendingUpdate: [],
+      pendingUpdate: {},
       visibleUsers: [],
       users: [],
-      entrys: [],
+      entrys: {},
       holidays: {},
       startDate: {
         year: moment().get('year'),
@@ -143,7 +165,7 @@ class BigCalendar extends Component {
     );
   }
   footer = () => {
-    let save = this.state.pendingUpdate.length > 0;
+    let save = Object.keys(this.state.pendingUpdate).length > 0;
     return (
       <CardActions style={{ paddingTop: '0%' }} disableActionSpacing>
         <Pagination
@@ -261,21 +283,25 @@ class BigCalendar extends Component {
     schedulerData.next();
     this.onScheduleChange(schedulerData);
     this.calcHolidays(schedulerData);
-    console.log(schedulerData)
+    console.log(schedulerData);
   };
 
-  calcHolidays = schedulerData => {
-    let { startDate, endDate } = schedulerData;
+  calcHolidays = () => {
+    const {viewModel} = this.state;
+    let { startDate, endDate, events } = viewModel;
+    console.log('Start',startDate, endDate, events)
     let [start, end] = [new Date(startDate), new Date(endDate)];
     const { holidays } = this.state;
     let activeHolidays = [];
+    let updateEvents = [];
+    if(holidays[start.getFullYear()]!== undefined)
     holidays[start.getFullYear()].forEach(holiday => {
       if (holiday.date >= start && holiday.date <= end) {
         activeHolidays.push(holiday);
       }
     });
     if (activeHolidays.length > 0) {
-      let renderData = schedulerData.renderData;
+      let renderData = viewModel.renderData;
       renderData.forEach(slot => {
         slot.headerItems.forEach(day => {
           let date = new Date(day.start);
@@ -286,26 +312,47 @@ class BigCalendar extends Component {
           if (holiday) {
             let event = day.events[0];
             if (event !== undefined) {
-              console.log(
-                'eval event',
-                slot.slotId,
-                'evnet',
-                event,
-                new Date(event.eventItem.start)
-              );
+              let code = event.eventItem.title;
+              let newCode = this.doesNeedCodeCorrection(code, holidayCodes[holiday.official].code)
+              if (newCode){
+                updateEvents.push({sap_id:slot.slotId,code:newCode,date:date})
+                console.log('newEventUpdate')
+              }
             } else {
-              console.log('Add holiday');
+              let newEvent = this.generateEvent(slot.slotId,moment(date).format('Y-M-D HH:mm:ss'), moment(date).format('Y-M-D 23:59:59') ,holidayCodes[holiday.official].code);
+              events.push(newEvent)
+              console.log('Add holiday',holiday);
             }
           }
         });
       });
+      
+      this.batchUpdate(updateEvents)
+      console.log(events)
+      viewModel.setEvents(events)
+      this.setState({ events })
     }
+
   };
+
+  doesNeedCodeCorrection(code,holidayCode){
+    if(holidayCode === code){return false}
+    else{
+      if(isAny(code, ['S','NS','MS'])){
+        if (holidayCode === 'OH'){
+          const convertion = {MS:'MHS' ,S:'HS', NS:'NHS'}
+          return convertion[code]
+        }
+          return code
+      }
+      return holidayCode
+    }
+  }
 
   onScheduleChange = schedulerData => {
     let startDate = new Date(schedulerData.startDate);
     let endDate = new Date(schedulerData.endDate);
-    schedulerData.setEvents(this.state.entrys);
+    schedulerData.setEvents(this.state.events);
     this.setState(
       {
         viewModel: schedulerData,
@@ -325,7 +372,7 @@ class BigCalendar extends Component {
   };
   onViewChange = (schedulerData, view) => {
     schedulerData.setViewType(view.viewType, view.showAgenda, view.isEventPerspective);
-    schedulerData.setEvents(this.state.entrys);
+    schedulerData.setEvents(this.state.events);
     this.setState(
       {
         viewModel: schedulerData
@@ -337,7 +384,7 @@ class BigCalendar extends Component {
   };
   onSelectDate = (schedulerData, date) => {
     schedulerData.setDate(date);
-    schedulerData.setEvents(this.state.entrys);
+    schedulerData.setEvents(this.state.events);
     this.setState({ viewModel: schedulerData }, () => {
       this.calcHolidays(schedulerData);
     });
@@ -362,27 +409,39 @@ class BigCalendar extends Component {
       });
     }
   };
-  //Generates Event with the given data and retuns it
-  generateEvent = (schedulerData, resourceId,start,end,code) =>{
+  /**
+   * Generates Event with the given data and retuns it
+   * @param {string} resourceId
+   * @param {string} start format('Y-M-D HH:mm:ss')
+   * @param {string} end  format('Y-M-D HH:mm:ss')
+   * @param {String} code 'S, O, SE'
+   * @return {Object} result
+   */
+  generateEvent = (resourceId, start, end, code) => {
     let s = new Date(start);
     let e = new Date(end);
-
-    let newEvent = {
-        id: s.valueOf() +'-'+ e.valueOf(),
-        title: 'X',
-        start: start,
-        end: end,
-        resourceId: resourceId,
-        bgColor: 'purple',
-        editable: true
-      };
-    return this.eventRules(newEvent,code,start,end)
+    return {
+      id: resourceId+'-'+s.valueOf() + '-' + e.valueOf(),
+      title: code,
+      start: start,
+      end: end,
+      resourceId: resourceId,
+      bgColor: colors[shift_colors[code]][800],
+      editable: this.isEventEditable(code,e)
+    };
+    
+  };
+  isEventEditable(code,end){
+    if(code === 'NH'){
+      return false
+    }
+    if(end <= new Date())
+      console.log('Editalbe Only rules')
+    return true
   }
   newEvent = (schedulerData, slotId, slotName, start, end, type, item) => {
     if (this.state.enableEdit) {
-   
-      let newEvent = this.generateEvent(schedulerData, slotId, start, end, 'O')
-
+      let newEvent = this.generateEvent(slotId, start, end, 'O');
       this.setState({
         viewModel: schedulerData,
         open: true,
@@ -435,11 +494,8 @@ class BigCalendar extends Component {
     console.log(slot);
     console.log('slotClickedFunc', this.state.entrys);
   };
-  /*
-    eventClicked = (schedulerData, event) => {
-      alert(`You just clicked an event: {id: ${event.id}, title: ${event.title}}`);
-    };
-  */
+  //eventClicked = (schedulerData, event) => {alert(`You just clicked an event: {id: ${event.id}, title: ${event.title}}`);};
+  
   //#endregion
 
   //#region User Server Fetch
@@ -498,7 +554,11 @@ class BigCalendar extends Component {
    * @param {number} [month]
    */
   getShifstsData = (year, month) => {
-    console.log('getShifstsData', 'wsinf/' + year + '/' + month, 'limit will be set acording users fetch');
+    console.log(
+      'getShifstsData',
+      'wsinf/' + year + '/' + month,
+      'limit will be set acording users fetch'
+    );
     let path = 'wsinf/' + year + '/' + month;
     getData(path, 50, this.processShiftQuery, year, month);
   };
@@ -511,34 +571,23 @@ class BigCalendar extends Component {
     getMoreData(path, 50, this.processShiftQuery, this.state.lastEntry, year, month);
   };
   /**
-   * @param {any} [snapshot]
-   * @param {number} [year]
-   * @param {number} [month]
+   * @param {any} snapshot
+   * @param {number} year
+   * @param {number} month
    * @return {Promise} emty
    */
   processShiftQuery = (snapshot, year, month) => {
     let lastVisible = snapshot.docs[snapshot.docs.length - 1];
     let { entrys, lastEntry } = this.state;
 
-    entrys[year] = entrys[year] || {}
-    entrys[year][month] = entrys[year][month] || {}
+    entrys[year] = entrys[year] || {};
+    entrys[year][month] = entrys[year][month] || {};
 
-    snapshot.docs.forEach( user => {
-      entrys[year][month][user.id] = user.data().m
+    snapshot.docs.forEach(user => {
+      entrys[year][month][user.id] = entrys[year][month][user.id] || {}
+      entrys[year][month][user.id]['shifts'] = user.data().m;
     });
-    console.log(entrys)
 
-   /* console.log(snapshot);
-    let data = snapshot.docs.map(snapshot => {
-      console.log(snapshot);
-      return this.groupSameAdjasentDays(snapshot.id, year, month, snapshot.data().m);
-    });
-    data = [].concat(...data);
-
-    entrys = mergeArrays(data, entrys, 'id');
-    this.state.viewModel.setEvents(entrys);
-    */
-    
     return new Promise(resolve => {
       this.setState(
         {
@@ -546,18 +595,36 @@ class BigCalendar extends Component {
           lastEntry: lastVisible ? lastVisible : lastEntry
         },
         () => {
-          this.paginationRef.forceUpdateRows();
           resolve();
+          this.buildVisibleShifts();
         }
       );
     });
   };
+  /** Geterates only the shifts for the visible users */
+  buildVisibleShifts = () => {
+    let { entrys, viewModel } = this.state;
+    let events = []
+    let renderData = viewModel.renderData;
+    let visubleUsers =  renderData.map(slot => {return slot.slotId})
+    visubleUsers.forEach(user => {
+       objectForEach(entrys, (year , months) => {
+         objectForEach(months, (month,users) => {
+          if(users[user] !== undefined)
+            events.push(...this.groupSameAdjasentDays(user, year, month, users[user].shifts));
+        })
+      })
+    });
+    
+    this.setState({ events },()=>{viewModel.setEvents(events);this.calcHolidays(viewModel);})
+  };
+
   /**
    * @param {string | number} [sap_id]
    * @param {number} [year]
    * @param {number} [month]
    * @param {Array<any>} [days]
-   * @return {Array<any>} from buildShift
+   * @return {Array<any>} from generateEvent
    */
   groupSameAdjasentDays(sap_id, year, month, days) {
     let output = [];
@@ -568,34 +635,15 @@ class BigCalendar extends Component {
       } else {
         if (days[x] !== '' && days[x] !== null && days[x] !== undefined) {
           //console.log('day',x)
-          output.push(this.buildShift(sap_id, year, month, prev !== -1 ? prev : x, x, days[x]));
+          let start = moment(new Date(year,month-1, prev !== -1 ? prev : x,0,0,0)).format('Y-M-D HH:mm:ss')
+          let end = moment(new Date(year,month-1, x,23,59,59)).format('Y-M-D HH:mm:ss')
+          output.push(this.generateEvent(sap_id, start, end , days[x]));
         }
         prev = -1;
       }
     }
     return output;
   }
-  /**
-   * @param {string | number} [sap_id]
-   * @param {number} [year]
-   * @param {number} [month]
-   * @param {number} [day1]
-   * @param {number} [day1]
-   * @param {String} [code]
-   * @return {Object} result
-   */
-  buildShift = (sap_id, year, month, day1, day2, code) => {
-    //console.log(code,shift_colors[code])
-    return {
-      id: '' + sap_id + year + month + '-' + day1 + '-' + day2,
-      start: year + '-' + month + '-' + day1 + ' 00:00:00',
-      end: year + '-' + month + '-' + day2 + ' 23:59:59',
-      resourceId: sap_id,
-      title: code,
-      bgColor: colors[shift_colors[code]][800], // There most be a shift code not implemented if here is an error
-      editable: true
-    };
-  };
   //#endregion
 
   onDeleteRemaining = (event, start, end, reverse) => {
@@ -615,50 +663,50 @@ class BigCalendar extends Component {
   onEdit = (event, start, end) => {
     let sap_id = event.resourceId;
     let code = event.title;
-    let daysBetween = moment(end).diff(moment(start), 'days');
-    let days = [];
-    for (let i = 0; i <= daysBetween; i++) {
-      let d = new Date(start);
-      d.setDate(d.getDate() + i);
-      let year = d.getFullYear();
-      let month = d.getMonth() + 1;
-      let day = d.getDate();
-      let id = [sap_id, year, month, day];
-      id = id.join('-');
-      days.push({ id, sap_id, code, year, month, day });
-    }
-    this.setState(
-      {
-        pendingUpdate: mergeArrays(days, this.state.pendingUpdate, 'id')
-      },
-      () => {
-        /*console.log(this.state.pendingUpdate)*/
-      }
-    );
+    this.onUpdate(sap_id, code, start, end);
   };
   onDelete = (event, start, end) => {
     let sap_id = event.resourceId;
+    this.onUpdate(sap_id, '', start, end);
+  };
+  onUpdate = (sap_id, code ,start, end)=>{
+    let { pendingUpdate, entrys } = this.state;
     let daysBetween = moment(end).diff(moment(start), 'days');
-    let days = [];
     for (let i = 0; i <= daysBetween; i++) {
       let d = new Date(start);
       d.setDate(d.getDate() + i);
       let year = d.getFullYear();
+      pendingUpdate[year] = pendingUpdate[year] || {};
       let month = d.getMonth() + 1;
-      let day = d.getDate();
-      let id = [sap_id, year, month, day];
-      id = id.join('-');
-      days.push({ id, sap_id, code: '', year, month, day });
+      pendingUpdate[year][month] = pendingUpdate[year][month] || {};
+      pendingUpdate[year][month][sap_id] = pendingUpdate[year][month][sap_id] || {}
+      pendingUpdate[year][month][sap_id]['shifts'] = pendingUpdate[year][month][sap_id]['shifts'] ||{}
+      pendingUpdate[year][month][sap_id]['shifts'][d.getDate()] = code;
+      entrys[year][month][sap_id]['shifts'][d.getDate()] = code;
     }
-    this.setState({
-      pendingUpdate: mergeArrays(days, this.state.pendingUpdate, 'id')
+    this.setState({ pendingUpdate, entrys });
+  }
+  batchUpdate = batch =>{
+    let { pendingUpdate, entrys } = this.state;
+    
+    batch.forEach(({sap_id, code ,date}) =>{
+      let year = date.getFullYear();
+      pendingUpdate[year] = pendingUpdate[year] || {};
+      let month = date.getMonth() + 1;
+      pendingUpdate[year][month] = pendingUpdate[year][month] || {};
+      pendingUpdate[year][month][sap_id] = pendingUpdate[year][month][sap_id] || {}
+      pendingUpdate[year][month][sap_id]['shifts'] = pendingUpdate[year][month][sap_id]['shifts'] ||{}
+      pendingUpdate[year][month][sap_id]['shifts'][date.getDate()] = code;
+      entrys[year][month][sap_id]['shifts'][date.getDate()] = code;
     });
-  };
+      
+    this.setState({ pendingUpdate, entrys });
+  }
   getVisibleUsers = (page, rowsPerPage) => {
     let { users } = this.state;
     let visibleUsers = [].concat(users).splice((page - 1) * rowsPerPage, rowsPerPage);
     this.state.viewModel.setResources(visibleUsers);
-    this.setState({});
+    this.buildVisibleShifts();
   };
   /**
    * Updates the event and also updates the pending save ones as well as finishing the new event process
@@ -745,13 +793,11 @@ class BigCalendar extends Component {
 
     return new Promise(resolve => {
       this.setState(
-        {
-          holidays: holidays
-        },
+        { holidays },
         () => {
-          console.log('implement build processHolidaysQuery'); //this.buildEventHolidays();
-          this.setLoading('load', false);
           resolve();
+          this.calcHolidays();
+          this.setLoading('load', false);
         }
       );
     });
@@ -773,5 +819,16 @@ const styles = theme => ({
     color: theme.palette.common.white
   }
 });
+const holidayCodes ={
+  O:{
+    code: 'OH'
+  },
+  N:{
+    code: 'NH'
+  },
+  C:{
+    code: 'H'
+  }
+}
 
 export default withStyles(styles)(withDragDropContext(BigCalendar));

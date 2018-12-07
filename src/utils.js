@@ -73,6 +73,16 @@ export function mergeArraysMultyKey(leadArray, secondArray, keys) {
     return row;
   });
 */
+export function objectMap(object, mapFn) {
+  return Object.keys(object).map(function(key) {
+    return mapFn(key, object[key]);
+  });
+}
+export function objectForEach(object, mapFn) {
+  return Object.keys(object).forEach(function(key) {
+    mapFn(key, object[key]);
+  });
+}
 export function arrayMatchPatterns(array, patterns) {
   for (let x in patterns) {
     if (!arrayMatchPattern(array, patterns[x])) {

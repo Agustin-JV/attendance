@@ -251,12 +251,10 @@ class HolydayPlanner extends React.Component {
         ]);
         if (matchPattern) {
           let utcDate = new Date(Date.UTC(data[x][2], data[x][3] - 1, data[x][4]));
-          let official = false;
+          let official = 'C';
           if (typeof data[x][1] === 'string') {
             let o = data[x][1].toLowerCase();
-            official = isAny(o, ['true', 'si', 'x', 'yes']);
-          } else if (typeof data[x][1] === 'boolean') {
-            official = data[x][1];
+            if (isAny(o, ['O', 'N', 'C', 'o', 'n', 'c'])) official = o;
           }
           this.addHoliday({
             name: data[x][0],
@@ -335,8 +333,9 @@ class HolydayPlanner extends React.Component {
    * @return {HollydayEvent} holiday event
    */
   buildEvents = holiday => {
-    let color = holiday.official ? 'green' : 'indigo';
-    let shade = holiday.official ? 400 : 300;
+    console.log(holiday.official);
+    let color = holidayType[holiday.official].color;
+    let shade = holidayType[holiday.official].shade;
     let year = holiday.date.getUTCFullYear();
     let day = holiday.date.getUTCDate();
     let month = holiday.date.getUTCMonth();
@@ -346,7 +345,7 @@ class HolydayPlanner extends React.Component {
       start: new Date(year, month, day),
       end: new Date(year, month, day, 23),
       allDay: true,
-      desc: holiday.official ? 'Official' : 'Non-Official',
+      desc: holidayType[holiday.official].desc,
       official: holiday.official,
       color: colors[color][shade]
     };
@@ -532,4 +531,21 @@ const eventType = [
     label: 'Non - Official'
   }
 ];
+const holidayType = {
+  O: {
+    color: 'green',
+    desc: 'Official',
+    shade: 400
+  },
+  N: {
+    color: 'cyan',
+    desc: 'Non-Workable',
+    shade: 300
+  },
+  C: {
+    color: 'indigo',
+    desc: 'Conmemorative',
+    shade: 300
+  }
+};
 export default withStyles(styles)(HolydayPlanner);
