@@ -56,30 +56,31 @@ const processDocumentQuery = (caller, collection, doc, callback, ...args) => que
 
 /**
  * @param {String} collection the path to find the collection
+ * @param {number} limit limit the amount of records fetched
  * @param {function} callback should implement a promice that returns with no arguments  like -> return new Promise((resolve) => { resolve();})
  * @param {...args} args they will be passed to the callback
  */
-export const getData = async (collection, callback, ...args) => {
+export const getData = async (collection, limit, callback, ...args) => {
   let fresh = await isCacheFresh('' + collection + '--1');
   //console.log('getData, fresh', fresh, collection);
   if (fresh) {
     db.collection(collection)
-      .limit(50)
+      .limit(limit)
       .get({ source: 'cache' })
-      .then(processQuery(getData, collection, callback, null, ...args), error => {
+      .then(processQuery(getData, collection, limit, callback, null, ...args), error => {
         console.log(getData, error);
       });
   } else {
     db.collection(collection)
-      .limit(50)
+      .limit(limit)
       .get()
-      .then(processQuery(getData, collection, callback, null, ...args), error => {
+      .then(processQuery(getData, collection, limit, callback, null, ...args), error => {
         console.log(getData, error);
       });
   }
 };
 
-const processQuery = (caller, collection, callback, lastRow, ...args) => querySnapshot => {
+const processQuery = (caller, collection, limit, callback, lastRow, ...args) => querySnapshot => {
   //console.log(caller, collection, querySnapshot);
   let empty = querySnapshot.empty;
   let fromCache = querySnapshot.metadata.fromCache;
@@ -98,27 +99,27 @@ const processQuery = (caller, collection, callback, lastRow, ...args) => querySn
   }
 
   callback(querySnapshot, ...args).then(
-    goLive(collection, fromCache, empty, caller, callback, lastRow, ...args)
+    goLive(collection, limit, fromCache, empty, caller, callback, lastRow, ...args)
   );
 };
 
-const goLive = (collection, fromCache, empty, caller, callback, lastRow, ...args) => () => {
+const goLive = (collection, limit, fromCache, empty, caller, callback, lastRow, ...args) => () => {
   //var source = fromCache ? 'local cache' : 'server';
   //console.log('Data came from ' + source + ' ' + caller);
   if (fromCache && empty) {
     if (lastRow !== null && lastRow !== undefined && caller === getMoreData) {
       db.collection(collection)
         .startAfter(lastRow)
-        .limit(50)
+        .limit(limit)
         .get()
-        .then(processQuery(getMoreData, collection, callback, lastRow, ...args), error => {
+        .then(processQuery(getMoreData, collection, limit, callback, lastRow, ...args), error => {
           console.log('goLive after', error);
         });
     } else {
       db.collection(collection)
-        .limit(50)
+        .limit(limit)
         .get()
-        .then(processQuery(getData, collection, callback, null, ...args), error => {
+        .then(processQuery(getData, collection, limit, callback, null, ...args), error => {
           console.log('goLive begining', error);
         });
     }
@@ -126,25 +127,26 @@ const goLive = (collection, fromCache, empty, caller, callback, lastRow, ...args
 };
 /**
  * @param {String} collection the path to find the collection
+ * @param {number} limit limit the amount of records fetched
  * @param {function} callback should implement a promice that returns with no arguments  like -> return new Promise((resolve) => { resolve();})
  * @param {fbDocument} lastRow the las document looked at
  * @param {...args} args they will be passed to the callback
  */
-export const getMoreData = async (collection, callback, lastRow, ...args) => {
+export const getMoreData = async (collection, limit, callback, lastRow, ...args) => {
   if (lastRow !== null && lastRow !== undefined) {
     let fresh = await isCacheFresh('' + collection + '-' + lastRow.id);
     if (fresh) {
       db.collection(collection)
         .startAfter(lastRow)
-        .limit(50)
+        .limit(limit)
         .get({ source: 'cache' })
-        .then(processQuery(getMoreData, collection, callback, lastRow, ...args));
+        .then(processQuery(getMoreData, collection, limit, callback, lastRow, ...args));
     } else {
       db.collection(collection)
         .startAfter(lastRow)
-        .limit(50)
+        .limit(limit)
         .get()
-        .then(processQuery(getMoreData, collection, callback, lastRow, ...args));
+        .then(processQuery(getMoreData, collection, limit, callback, lastRow, ...args));
     }
   } else {
     getData(collection, callback, ...args);

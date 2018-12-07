@@ -261,6 +261,7 @@ class BigCalendar extends Component {
     schedulerData.next();
     this.onScheduleChange(schedulerData);
     this.calcHolidays(schedulerData);
+    console.log(schedulerData)
   };
 
   calcHolidays = schedulerData => {
@@ -361,25 +362,26 @@ class BigCalendar extends Component {
       });
     }
   };
-  newEvent = (schedulerData, slotId, slotName, start, end, type, item) => {
-    if (this.state.enableEdit) {
-      let s = new Date(start);
-      let e = new Date(end);
-      let newFreshId =
-        '' + slotId + s.getFullYear() + s.getMonth() + '-' + s.getDate() + '-' + e.getDate();
-      schedulerData.events.forEach(item => {
-        if (item.id === newFreshId) newFreshId = newFreshId + '-' + 1;
-      });
+  //Generates Event with the given data and retuns it
+  generateEvent = (schedulerData, resourceId,start,end,code) =>{
+    let s = new Date(start);
+    let e = new Date(end);
 
-      let newEvent = {
-        id: newFreshId,
+    let newEvent = {
+        id: s.valueOf() +'-'+ e.valueOf(),
         title: 'X',
         start: start,
         end: end,
-        resourceId: slotId,
+        resourceId: resourceId,
         bgColor: 'purple',
         editable: true
       };
+    return this.eventRules(newEvent,code,start,end)
+  }
+  newEvent = (schedulerData, slotId, slotName, start, end, type, item) => {
+    if (this.state.enableEdit) {
+   
+      let newEvent = this.generateEvent(schedulerData, slotId, start, end, 'O')
 
       this.setState({
         viewModel: schedulerData,
@@ -443,11 +445,11 @@ class BigCalendar extends Component {
   //#region User Server Fetch
   /** fetchs for the users to fill the resource column */
   getUsersData = () => {
-    getData('users', this.processUsersQuery);
+    getData('users', 50, this.processUsersQuery);
   };
   /** continue fetching for the users from the last one to fill the resource column */
   getUsersMoreData = () => {
-    getMoreData('users', this.processUsersQuery, this.state.lastRow);
+    getMoreData('users', 50, this.processUsersQuery, this.state.lastRow);
   };
   /**
    * @param {any} [snapshot]
@@ -496,9 +498,9 @@ class BigCalendar extends Component {
    * @param {number} [month]
    */
   getShifstsData = (year, month) => {
-    console.log('getShifstsData', 'wsinf/' + year + '/' + month);
+    console.log('getShifstsData', 'wsinf/' + year + '/' + month, 'limit will be set acording users fetch');
     let path = 'wsinf/' + year + '/' + month;
-    getData(path, this.processShiftQuery, year, month);
+    getData(path, 50, this.processShiftQuery, year, month);
   };
   /**
    * @param {number} [year]
@@ -506,7 +508,7 @@ class BigCalendar extends Component {
    */
   getShifstsMoreData = (year, month) => {
     let path = 'wsinf/' + year + '/' + month;
-    getMoreData(path, this.processShiftQuery, this.state.lastEntry, year, month);
+    getMoreData(path, 50, this.processShiftQuery, this.state.lastEntry, year, month);
   };
   /**
    * @param {any} [snapshot]
@@ -516,17 +518,27 @@ class BigCalendar extends Component {
    */
   processShiftQuery = (snapshot, year, month) => {
     let lastVisible = snapshot.docs[snapshot.docs.length - 1];
-    console.log(snapshot);
+    let { entrys, lastEntry } = this.state;
+
+    entrys[year] = entrys[year] || {}
+    entrys[year][month] = entrys[year][month] || {}
+
+    snapshot.docs.forEach( user => {
+      entrys[year][month][user.id] = user.data().m
+    });
+    console.log(entrys)
+
+   /* console.log(snapshot);
     let data = snapshot.docs.map(snapshot => {
       console.log(snapshot);
       return this.groupSameAdjasentDays(snapshot.id, year, month, snapshot.data().m);
     });
     data = [].concat(...data);
 
-    let { entrys, lastEntry } = this.state;
     entrys = mergeArrays(data, entrys, 'id');
     this.state.viewModel.setEvents(entrys);
-
+    */
+    
     return new Promise(resolve => {
       this.setState(
         {
@@ -672,8 +684,11 @@ class BigCalendar extends Component {
     });
   };
   /**
-   * @param {object} [e] event
-   * @param {string} [code] shift code
+   * Changes color, and adds propertyes acording event type
+   * @param {object} e event
+   * @param {string} code shift code
+   * @param {string} start string date
+   * @param {string} end string date
    */
   eventRules = (e, code, start, end) => {
     e.title = code;
@@ -697,7 +712,7 @@ class BigCalendar extends Component {
     e.bgColor = colors[shift_colors[code]][800];
     return e;
   };
-
+  //incomplete wip
   addHolidaysEvents = () => {
     const { holidays, users } = this.state;
     for (let idx in users) {

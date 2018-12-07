@@ -272,7 +272,7 @@ class UserProjects extends React.Component {
     this.ref.table.copyToClipboard('selected');
   };
   getData = () => {
-    getData('users', this.processQuery);
+    getData('users', 50, this.processQuery);
   };
   processQuery = snapshot => {
     let lastVisible = snapshot.docs[snapshot.docs.length - 1];
@@ -303,7 +303,7 @@ class UserProjects extends React.Component {
     });
   };
   getMoreData = () => {
-    getMoreData('users', this.processQuery, this.state.lastRow);
+    getMoreData('users', 50, this.processQuery, this.state.lastRow);
   };
   save = () => {
     const { pendingUpdate } = this.state;
