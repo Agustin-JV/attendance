@@ -105,11 +105,16 @@ class UserShifts extends Component {
           </CardContent>
         ) : null}
         <CardContent style={{ paddingTop: '0%', paddingBottom: '0%' }}>
-          <BigCalendar 
-          setDateRange = {this.setDateRange}
-          onEditEvent = {this.onEditEvent}
-          onDeleteEvent = {this.onDeleteEvent}
-          onNewEvent = {this.onNewEvent}
+          <BigCalendar
+            setDateRange={this.setDateRange}
+            onEditEvent={this.onEditEvent}
+            onDeleteEvent={this.onDeleteEvent}
+            onNewEvent={this.onNewEvent}
+            onUdateStart ={this.onUdateStart}
+            onUpdateEnd={this.onUpdateEnd}
+            setViewModel={this.setViewModel}
+            events = {this.state.events}
+            calcHolidays = {this.calcHolidays}
           />
         </CardContent>
         {this.footer()}
@@ -230,7 +235,23 @@ class UserShifts extends Component {
       });
     }
   };
-
+  onUdateStart = (event, newStart) => {
+    this.onUpdateEventLenght(newStart, event.end, event.start, newStart, false);
+  };
+  onUpdateEnd = (event, newEnd) => {
+    this.onUpdateEventLenght(event.start, newEnd, newEnd, event.end, true);
+  };
+  onUpdateEventLenght = (event, start, end, delStart, delEnd, flip) => {
+    event = this.eventRules(event, event.title, start, end);
+    this.onDeleteRemaining(event, delStart, delEnd, flip);
+    this.onEdit(event, start, end);
+    this.setState({
+      pendingSave: true
+    });
+  };
+  setViewModel = (viewModel)=>{
+      this.setState({viewModel})
+  }
   activateOptions = () => {
     let { newEvent, currentEvent } = this.state;
     let actual = newEvent || currentEvent;
@@ -313,18 +334,6 @@ class UserShifts extends Component {
     console.log('Implement  set dirty cache');
   };
 
-  //#region Scheduler functions
-  prevClick = schedulerData => {
-    schedulerData.prev();
-    this.onScheduleChange(schedulerData);
-    this.calcHolidays(schedulerData);
-  };
-
-  nextClick = schedulerData => {
-    schedulerData.next();
-    this.onScheduleChange(schedulerData);
-    this.calcHolidays(schedulerData);
-  };
   /**
    * Gets the holidays that occur on a given time frame
    * @param {Date} start
@@ -349,8 +358,9 @@ class UserShifts extends Component {
 
     return activeHolidays;
   };
-  calcHolidays = () => {
-    const { viewModel } = this.state;
+  calcHolidays = schedulerData => {
+    let { viewModel } = this.state;
+    if (schedulerData !== undefined) viewModel = schedulerData;
     let { startDate, endDate, events } = viewModel;
     let activeHolidays = this.getActiveHolidays(startDate, endDate);
     let updateEvents = [];
@@ -385,7 +395,7 @@ class UserShifts extends Component {
       });
 
       viewModel.setEvents(events);
-      this.setState({ events }, () => {
+      this.setState({ events, viewModel }, () => {
         if (updateEvents.length > 0) this.batchUpdate(updateEvents);
       });
     }
@@ -416,92 +426,6 @@ class UserShifts extends Component {
     }
   }
 
-  onScheduleChange = schedulerData => {
-    let startDate = new Date(schedulerData.startDate);
-    let endDate = new Date(schedulerData.endDate);
-    schedulerData.setEvents(this.state.events);
-    this.setState(
-      {
-        viewModel: schedulerData,
-        startDate: {
-          year: startDate.getUTCFullYear(),
-          month: startDate.getUTCMonth()
-        },
-        endDate: {
-          year: endDate.getUTCFullYear(),
-          month: endDate.getUTCMonth()
-        }
-      },
-      () => {
-        this.calcHolidays(schedulerData);
-      }
-    );
-  };
-  onViewChange = (schedulerData, view) => {
-    schedulerData.setViewType(view.viewType, view.showAgenda, view.isEventPerspective);
-    schedulerData.setEvents(this.state.events);
-    this.setState(
-      {
-        viewModel: schedulerData
-      },
-      () => {
-        this.calcHolidays(schedulerData);
-      }
-    );
-  };
-  onSelectDate = (schedulerData, date) => {
-    schedulerData.setDate(date);
-    schedulerData.setEvents(this.state.events);
-    this.setState({ viewModel: schedulerData }, () => {
-      this.calcHolidays(schedulerData);
-    });
-  };
-  /**
-   * If editable will evaluate if the event is on a holiday
-   * if it is it will set the shifle select propertyes acordingly
-   */
-  ops1 = (schedulerData, event) => {
-    if (event.editable) {
-      let activeHoliday = this.getActiveHolidays(event.start, event.end);
-      let isOfficialHoliday,
-        isHoliday = false;
-      if (activeHoliday[0] !== undefined) {
-        isOfficialHoliday = activeHoliday[0].official === 'O';
-        isHoliday = activeHoliday[0].official === 'C';
-      }
-      this.setState({
-        currentEvent: event,
-        open: true,
-        pendingSave: true,
-        isOfficialHoliday,
-        isHoliday
-      });
-    }
-    //alert(`You just executed ops1 to event: {id: ${event.id}, title: ${event.title}}`);
-  };
-  /**
-   * If editable will evaluate if the event is on a holiday
-   * if it is it will roll back to the holyday
-   */
-  ops2 = (schedulerData, event) => {
-    if (event.editable) {
-      schedulerData._detachEvent(event);
-      schedulerData._createRenderData();
-      this.setState({
-        viewModel: schedulerData,
-        pendingSave: true
-      });
-      let activeHoliday = this.getActiveHolidays(event.start, event.end);
-      if (activeHoliday[0] !== undefined) {
-        this.onUpdate(
-          event.resourceId,
-          holidayCodes[activeHoliday[0].official].code,
-          event.start,
-          event.end
-        ).then(this.buildVisibleShifts());
-      }
-    }
-  };
   /**
    * Generates Event with the given data and retuns it
    * @param {string} resourceId
@@ -539,64 +463,6 @@ class UserShifts extends Component {
     }
     return { editable, movable, resizable };
   }
-  newEvent = (schedulerData, slotId, slotName, start, end, type, item) => {
-    if (this.state.enableEdit) {
-      let newEvent = this.generateEvent(slotId, start, end, 'O');
-      this.setState({
-        viewModel: schedulerData,
-        open: true,
-        newEvent: newEvent,
-        pendingSave: true
-      });
-    }
-  };
-  updateEventStart = (schedulerData, event, newStart) => {
-    if (this.state.enableEdit && event.editable) {
-      event = this.eventRules(event, event.title, newStart, event.end);
-      this.onDeleteRemaining(event, event.start, newStart);
-      this.onEdit(event, newStart, event.end);
-      schedulerData.updateEventStart(event, newStart);
-      this.setState({
-        viewModel: schedulerData,
-        pendingSave: true
-      });
-    }
-  };
-  conflictOccurred = (schedulerData, action, event) => {
-    //alert(`Conflict occurred. {action: ${action}, event: ${event}`);
-  };
-  updateEventEnd = (schedulerData, event, newEnd) => {
-    if (this.state.enableEdit && event.editable) {
-      event = this.eventRules(event, event.title, event.start, newEnd);
-      this.onDeleteRemaining(event, newEnd, event.end, true);
-      this.onEdit(event, event.start, newEnd);
-      schedulerData.updateEventEnd(event, newEnd);
-      this.setState({
-        viewModel: schedulerData,
-        pendingSave: true
-      });
-    }
-  };
-  moveEvent = (schedulerData, event, slotId, slotName, start, end) => {
-    if (this.state.enableEdit && event.editable) {
-      event = this.eventRules(event, event.title, start, end);
-      this.onDelete(event, event.start, event.end);
-      this.onEdit(event, start, end);
-      schedulerData.moveEvent(event, slotId, slotName, start, end);
-      this.setState({
-        viewModel: schedulerData,
-        pendingSave: true
-      });
-    } //console.log(schedulerData.getSlots());
-  };
-  slotClickedFunc = (schedulerData, slot) => {
-    //alert(`You just clicked a ${schedulerData.isEventPerspective ? 'task' : 'resource'}.{id: ${slot.slotId}, name: ${slot.slotName}}`);
-    console.log(slot);
-    console.log('slotClickedFunc', this.state.entrys);
-  };
-  //eventClicked = (schedulerData, event) => {alert(`You just clicked an event: {id: ${event.id}, title: ${event.title}}`);};
-
-  //#endregion
 
   //#region User Server Fetch
   /** fetchs for the users to fill the resource column */
