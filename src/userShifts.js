@@ -3,7 +3,7 @@
 //#region IMPORTS
 import React, { Component } from 'react';
 import 'react-big-scheduler/lib/css/style.css';
-import Scheduler, { SchedulerData, ViewTypes, DATE_FORMAT } from 'react-big-scheduler';
+import BigCalendar from './bigCalendar';
 import moment from 'moment';
 import withDragDropContext from './withDnDContext';
 import { withStyles } from '@material-ui/core/styles';
@@ -40,49 +40,14 @@ import { db } from './fire_init';
  * @typedef {{[year:number]:HolidayObject[]}}  HolidayObjectArr
  */
 //#endregion
-class BigCalendar extends Component {
+class UserShifts extends Component {
   constructor(props) {
     super(props);
-    let schedulerData = new SchedulerData(
-      moment().format(DATE_FORMAT),
-      ViewTypes.Week,
-      false,
-      false,
-      {
-        dayMaxEvents: 1,
-        crossResourceMove: false,
-        checkConflict: true,
-        resourceName: 'User Name',
-        taskName: 'Shift',
-        agendaViewHeader: 'Agenda',
-        addMorePopoverHeaderFormat: 'MMM D, YYYY dddd',
-        eventItemPopoverDateFormat: 'MMM D',
-        nonAgendaDayCellHeaderFormat: 'ha',
-        nonAgendaOtherCellHeaderFormat: 'ddd D',
-        movable: false,
-        schedulerMaxHeight: 400,
-        views: [
-          {
-            viewName: 'Week View',
-            viewType: ViewTypes.Week,
-            showAgenda: false,
-            isEventPerspective: false
-          },
-          {
-            viewName: 'Month View',
-            viewType: ViewTypes.Month,
-            showAgenda: false,
-            isEventPerspective: false
-          }
-        ]
-      }
-    );
-    schedulerData.localeMoment.locale('es-mx');
     //set events here or later,
     //the event array should be sorted in ascending order by event.start property, otherwise there will be some rendering errors
     /** @type {State} */
     this.state = {
-      viewModel: schedulerData,
+      viewModel: null,
       anchorEl: null,
       open: false,
       currentEvent: null,
@@ -140,23 +105,11 @@ class BigCalendar extends Component {
           </CardContent>
         ) : null}
         <CardContent style={{ paddingTop: '0%', paddingBottom: '0%' }}>
-          <Scheduler
-            schedulerData={viewModel}
-            prevClick={this.prevClick}
-            nextClick={this.nextClick}
-            onSelectDate={this.onSelectDate}
-            onViewChange={this.onViewChange}
-            eventItemClick={this.eventClicked}
-            viewEventText={this.state.enableEdit ? 'Edit' : ''}
-            viewEventClick={this.ops1}
-            viewEvent2Text={this.state.enableEdit ? 'Delete' : ''}
-            viewEvent2Click={this.ops2}
-            updateEventStart={this.updateEventStart}
-            updateEventEnd={this.updateEventEnd}
-            moveEvent={this.moveEvent}
-            newEvent={this.newEvent}
-            conflictOccurred={this.conflictOccurred}
-            slotClickedFunc={this.slotClickedFunc}
+          <BigCalendar 
+          setDateRange = {this.setDateRange}
+          onEditEvent = {this.onEditEvent}
+          onDeleteEvent = {this.onDeleteEvent}
+          onNewEvent = {this.onNewEvent}
           />
         </CardContent>
         {this.footer()}
@@ -217,6 +170,66 @@ class BigCalendar extends Component {
     );
   };
   //#endregion
+  setDateRange = (startDate, endDate) => {
+    this.setState({
+      startDate: {
+        year: startDate.getUTCFullYear(),
+        month: startDate.getUTCMonth()
+      },
+      endDate: {
+        year: endDate.getUTCFullYear(),
+        month: endDate.getUTCMonth()
+      }
+    });
+  };
+  onEditEvent = event => {
+    if (event.editable) {
+      let activeHoliday = this.getActiveHolidays(event.start, event.end);
+      let isOfficialHoliday,
+        isHoliday = false;
+      if (activeHoliday[0] !== undefined) {
+        isOfficialHoliday = activeHoliday[0].official === 'O';
+        isHoliday = activeHoliday[0].official === 'C';
+      }
+      this.props.onEditEvent(event);
+      this.setState({
+        currentEvent: event,
+        open: true,
+        pendingSave: true,
+        isOfficialHoliday,
+        isHoliday
+      });
+    }
+  };
+  onDeleteEvent = event => {
+    if (event.editable) {
+      let { viewModel } = this.state;
+      viewModel._detachEvent(event);
+      viewModel._createRenderData();
+      this.setState({
+        pendingSave: true
+      });
+      let activeHoliday = this.getActiveHolidays(event.start, event.end);
+      if (activeHoliday[0] !== undefined) {
+        this.onUpdate(
+          event.resourceId,
+          holidayCodes[activeHoliday[0].official].code,
+          event.start,
+          event.end
+        ).then(this.buildVisibleShifts());
+      }
+    }
+  };
+  onNewEvent = (id, start, end) => {
+    if (this.state.enableEdit) {
+      let newEvent = this.generateEvent(id, start, end, 'O');
+      this.setState({
+        open: true,
+        newEvent: newEvent,
+        pendingSave: true
+      });
+    }
+  };
 
   activateOptions = () => {
     let { newEvent, currentEvent } = this.state;
@@ -923,4 +936,4 @@ const holidayCodes = {
   }
 };
 
-export default withStyles(styles)(withDragDropContext(BigCalendar));
+export default withStyles(styles)(withDragDropContext(UserShifts));

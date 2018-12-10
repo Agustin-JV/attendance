@@ -15,7 +15,7 @@ class ShiftSelect extends Component {
     this.props.onClose();
   };
   render() {
-    let { open, classes, showNS, onClick, showMS } = this.props;
+    let { open, classes, showNS, onClick, showMS, isHoldiDay, isOfficialHoliday } = this.props;
 
     let AvatarButton = this.AvatarButton;
     return (
@@ -46,9 +46,10 @@ class ShiftSelect extends Component {
                   Out Office
                 </Typography>
                 <Grid container spacing={8}>
-                  {AvatarButton('O', 'Out', false, 500, 800, 3)}
-                  {AvatarButton('V', 'Vacations', false)}
-                  {AvatarButton('H', 'Hollyday', false)}
+                  {AvatarButton('O', 'Out', isHoldiDay || isOfficialHoliday, 500, 800, 3)}
+                  {AvatarButton('V', 'Vacations', isHoldiDay || isOfficialHoliday)}
+                  {AvatarButton('H', 'Hollyday', !isHoldiDay)}
+                  {AvatarButton('OH', 'Hollyday', !isOfficialHoliday)}
                 </Grid>
               </Paper>
             </Grid>
@@ -58,28 +59,44 @@ class ShiftSelect extends Component {
                   Special Shift
                 </Typography>
                 <Grid container spacing={8}>
-                  {AvatarButton('MS', 'Morning Shift', !showMS)}
-                  {AvatarButton('S', 'Normal Shift', false)}
-                  {AvatarButton('NS', 'Night Shift', !showNS)}
-                  {AvatarButton('MHS', 'Morning Hollyday Shift', false, 500, 800, 6)}
-                  {AvatarButton('HS', 'Hollyday Shift', false, 700, 900)}
-                  {AvatarButton('NHS', 'Night Hollyday Shift', false, 500, 800, 6)}
+                  {AvatarButton('MS', 'Morning Shift', !showMS || isOfficialHoliday)}
+                  {AvatarButton('S', 'Normal Shift', isOfficialHoliday)}
+                  {AvatarButton('NS', 'Night Shift', !showNS || isOfficialHoliday)}
+                  {AvatarButton(
+                    'MHS',
+                    'Morning Hollyday Shift',
+                    !isOfficialHoliday || !showMS,
+                    500,
+                    800,
+                    6
+                  )}
+                  {AvatarButton('HS', 'Hollyday Shift', !isOfficialHoliday, 700, 900)}
+                  {AvatarButton(
+                    'NHS',
+                    'Night Hollyday Shift',
+                    !isOfficialHoliday || !showNS,
+                    500,
+                    800,
+                    6
+                  )}
                 </Grid>
               </Paper>
             </Grid>
-            <Grid item xs={12}>
-              <Paper className={classes.paper}>
-                <Typography variant="subtitle1" id="modal-title">
-                  Other
-                </Typography>
-                <Grid container spacing={8}>
-                  {AvatarButton('G', 'General ', false, 500, 800, 3)}
-                  {AvatarButton('SUS', 'Sustainment', false)}
-                  {AvatarButton('SEC', 'Secondary ', false, 600, 900)}
-                  {AvatarButton('T', 'Training', false)}
-                </Grid>
-              </Paper>
-            </Grid>
+            {!isHoldiDay && !isOfficialHoliday ? (
+              <Grid item xs={12}>
+                <Paper className={classes.paper}>
+                  <Typography variant="subtitle1" id="modal-title">
+                    Other
+                  </Typography>
+                  <Grid container spacing={8}>
+                    {AvatarButton('G', 'General ', false, 500, 800, 3)}
+                    {AvatarButton('SUS', 'Sustainment', false)}
+                    {AvatarButton('SEC', 'Secondary ', false, 600, 900)}
+                    {AvatarButton('T', 'Training', false)}
+                  </Grid>
+                </Paper>
+              </Grid>
+            ) : null}
           </Grid>
         </Card>
       </Modal>
@@ -90,7 +107,7 @@ class ShiftSelect extends Component {
    */
   AvatarButton = (code, label, hide, light = 500, dark = 800, xs = 4) => {
     let { onClick } = this.props;
-    return (
+    return hide ? null : (
       <Grid item xs={xs}>
         <AvatarChip
           cAr={[shift_colors[code], light, dark]}

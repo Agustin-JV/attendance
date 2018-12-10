@@ -523,12 +523,16 @@ const styles = theme => ({
 });
 const eventType = [
   {
-    value: true,
+    value: 'O',
     label: 'Official'
   },
   {
-    value: false,
-    label: 'Non - Official'
+    value: 'N',
+    label: 'Non - Workable'
+  },
+  {
+    value: 'C',
+    label: 'Conmemorative'
   }
 ];
 const holidayType = {
