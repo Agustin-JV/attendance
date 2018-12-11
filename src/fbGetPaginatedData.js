@@ -61,7 +61,7 @@ const processDocumentQuery = (caller, collection, doc, callback, ...args) => que
  * @param {...args} args they will be passed to the callback
  */
 export const getData = async (collection, limit, callback, ...args) => {
-  let fresh = await isCacheFresh('' + collection +limit+ '--1');
+  let fresh = await isCacheFresh('' + collection + limit + '--1');
   //console.log('getData, fresh', fresh, collection);
   if (fresh) {
     db.collection(collection)
@@ -89,7 +89,7 @@ const processQuery = (caller, collection, limit, callback, lastRow, ...args) => 
   lastRow = lastVisible !== undefined ? lastVisible : lastRow;
   lr = lr ? lr.id : '-1';
   if (!fromCache && lr) {
-    let path_pos = '' + collection+'-'+limit + '-' + lr;
+    let path_pos = '' + collection + '-' + limit + '-' + lr;
     addUpdate(
       { path_pos: path_pos, path: collection, after: lr, retrieve_date: Date.now() },
       path_pos,
@@ -134,7 +134,7 @@ const goLive = (collection, limit, fromCache, empty, caller, callback, lastRow, 
  */
 export const getMoreData = async (collection, limit, callback, lastRow, ...args) => {
   if (lastRow !== null && lastRow !== undefined) {
-    let fresh = await isCacheFresh('' + collection + '-' +limit+'-'+ lastRow.id);
+    let fresh = await isCacheFresh('' + collection + '-' + limit + '-' + lastRow.id);
     if (fresh) {
       db.collection(collection)
         .startAfter(lastRow)
