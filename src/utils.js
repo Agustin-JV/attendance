@@ -93,11 +93,30 @@ export function arrayMatchPatterns(array, patterns) {
 }
 export function arrayMatchPattern(array, pattern) {
   for (let x in array) {
-    if (typeof array[x] !== pattern[x] && pattern[x] !== 'any') {
+    let regex = /([a-z]+)\|?([a-z]*)/g;
+    let exec = regex.exec(pattern[x]);
+    let [,a,b] = exec;
+    let type = typeof array[x];
+    if (b!== '' && (type !== a && type !== b) && pattern[x] !== 'any') {
+      return false;
+    }
+    else if ( type !== a  && a !== 'any') {
       return false;
     }
   }
   return true;
+}
+
+export function arrayBuildComplexPattern( pattern) {
+  let simplePattern = [];
+  for (let range in pattern) {
+    let regex = /([0-9]+)-?([0-9]*)/g;
+    let exec = regex.exec(range);
+    let [, start, end] = exec;
+    if (end !== '') for (let i = start; i <= end; i++) simplePattern.push(pattern[range]);
+    else simplePattern.push(pattern[range]);
+  }
+  return simplePattern;
 }
 export function isEmpty(obj) {
   // null and undefined are "empty"

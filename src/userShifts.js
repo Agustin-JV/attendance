@@ -9,14 +9,23 @@ import withDragDropContext from './withDnDContext';
 import { withStyles } from '@material-ui/core/styles';
 import * as colors from '@material-ui/core/colors';
 import { Typography, CardContent, CardActions, IconButton, Card, Button } from '@material-ui/core';
-import { Save, Edit, Delete } from '@material-ui/icons';
+import { Save, Edit, Forward } from '@material-ui/icons';
 import ShiftSelect from './shiftSelect';
 import AvChip from './avatarChip';
 import Pagination from './pagination';
-import { mergeArrays, mergeArraysMultyKey, isAny, objectMap, objectForEach } from './utils';
+import {
+  getMonth,
+  mergeArrays,
+  isEmpty,
+  isAny,
+  objectForEach,
+  arrayMatchPattern,
+  arrayBuildComplexPattern
+} from './utils';
 import { getData, getMoreData, getDocument } from './fbGetPaginatedData';
 import shift_colors from './shift_colors.json';
 import { db } from './fire_init';
+import { handleFile, XLSX } from './loadXlsx';
 //#endregion
 //#region TS annotations
 /**
@@ -56,7 +65,7 @@ class UserShifts extends Component {
       pendingSave: true,
       rowsPerPage: 5,
       page: 1,
-      loading: { load: false },
+      loading: { load: false, upload: false, save: false },
       pendingUpdate: {},
       visibleUsers: [],
       users: [],
@@ -75,6 +84,7 @@ class UserShifts extends Component {
     };
   }
   paginationRef = null;
+  calendarRef = null;
   setLoading(key, value) {
     let { loading } = this.state;
     loading[key] = value;
@@ -82,19 +92,19 @@ class UserShifts extends Component {
   }
   //#region render
   render() {
-    const { viewModel, open, isOfficialHoliday, isHoldiDay } = this.state;
+    const { enableEdit, events, open, pendingUpdate, isOfficialHoliday, isHoldiDay } = this.state;
     const { classes } = this.props;
     let { showNS, showMS } = this.activateOptions();
-    let save = Object.keys(this.state.pendingUpdate).length > 0;
+    let save = Object.keys(pendingUpdate).length > 0;
     return (
       <Card style={{ width: 1050 }}>
-        {save || this.state.enableEdit ? (
+        {save || enableEdit ? (
           <CardContent
             style={{
-              backgroundColor: this.state.pendingSave ? colors['amber'][500] : colors['lime'][500]
+              backgroundColor: save ? colors['amber'][500] : colors['lime'][500]
             }}>
             <Typography variant="title">
-              {this.state.enableEdit ? 'Edition is enabled' : ''}
+              {enableEdit ? 'Edition is enabled' : ''}
               {save ? <b> Pending Save</b> : null}
               {save ? (
                 <IconButton aria-label="Add to favorites" onClick={this.onSave}>
@@ -106,15 +116,17 @@ class UserShifts extends Component {
         ) : null}
         <CardContent style={{ paddingTop: '0%', paddingBottom: '0%' }}>
           <BigCalendar
+            ref={ref => (this.calendarRef = ref)}
             setDateRange={this.setDateRange}
             onEditEvent={this.onEditEvent}
             onDeleteEvent={this.onDeleteEvent}
             onNewEvent={this.onNewEvent}
-            onUdateStart ={this.onUdateStart}
+            onUdateStart={this.onUdateStart}
             onUpdateEnd={this.onUpdateEnd}
             setViewModel={this.setViewModel}
-            events = {this.state.events}
-            calcHolidays = {this.calcHolidays}
+            events={events}
+            calcHolidays={this.calcHolidays}
+            editable={enableEdit}
           />
         </CardContent>
         {this.footer()}
@@ -131,6 +143,7 @@ class UserShifts extends Component {
     );
   }
   footer = () => {
+    const { loading } = this.state;
     let save = Object.keys(this.state.pendingUpdate).length > 0;
     return (
       <CardActions style={{ paddingTop: '0%' }} disableActionSpacing>
@@ -148,17 +161,28 @@ class UserShifts extends Component {
             avatar={<Save />}
             label="Save"
             clickable={save}
+            loading={loading['save']}
             onClick={this.onSave}
             hide={!this.state.enableEdit}
           />{' '}
-          <AvChip
-            cAr={['red', 700, 900]}
-            avatar={<Delete />}
-            label="Discard"
-            clickable={false}
-            onClick={this.onSave}
-            hide={true}
+          <input
+            accept=".xlsx"
+            style={{ display: 'none' }}
+            id="contained-button-file"
+            multiple
+            type="file"
+            onChange={this.loadFile}
           />
+          <label htmlFor="contained-button-file">
+            <AvChip
+              cAr={['red', 700, 900]}
+              avatar={<Forward style={{ transform: 'rotate(-90deg)' }} />}
+              label="Upload File"
+              clickable={true}
+              loading={loading['upload']}
+              hide={!this.state.enableEdit}
+            />
+          </label>
         </span>
         <div style={{ marginLeft: 'auto' }}>
           <AvChip
@@ -175,17 +199,75 @@ class UserShifts extends Component {
     );
   };
   //#endregion
-  setDateRange = (startDate, endDate) => {
-    this.setState({
-      startDate: {
-        year: startDate.getUTCFullYear(),
-        month: startDate.getUTCMonth()
-      },
-      endDate: {
-        year: endDate.getUTCFullYear(),
-        month: endDate.getUTCMonth()
-      }
+
+  //#region UploadFile
+  loadFile = e => {
+    this.setLoading('upload', true);
+    handleFile(this.fileCallback)(e);
+  };
+  fileCallback = wb => {
+    console.log('fileCallback', wb);
+    if (wb !== undefined) {
+      var ws = wb.Sheets[wb.SheetNames[0]];
+      var data = XLSX.utils.sheet_to_json(ws, {
+        header: 1
+      });
+      this.processData(data);
+    } else {
+      this.setLoading('upload', false);
+    }
+  };
+  processData = data => {
+    let pattern = arrayBuildComplexPattern({
+      '0': 'string|number',
+      '1': 'number',
+      '2': 'string',
+      '3-33': 'string|undefined'
     });
+    let batch = [];
+    for (let x in data) {
+      if (!isEmpty(data[x])) {
+        let matchPattern = arrayMatchPattern(data[x], pattern);
+        let info = data[x].splice(0, 3);
+        if (matchPattern) {
+          let days = Object.assign({}, data[x]);
+          for (let day in days) {
+            batch.push({
+              userId: info[0],
+              code: days[day].toUpperCase(),
+              date: new Date(info[1], getMonth(info[2], true), Number(day) + 1)
+            });
+          }
+        }
+      }
+    }
+    if (batch.length > 0) {
+      this.batchUpdate(batch);
+    }
+    this.setLoading('upload', false);
+  };
+  //#endregion
+
+  //#region BigCalendar
+  setDateRange = (startDate, endDate) => {
+    this.setState(
+      {
+        startDate: {
+          year: startDate.getUTCFullYear(),
+          month: startDate.getUTCMonth()
+        },
+        endDate: {
+          year: endDate.getUTCFullYear(),
+          month: endDate.getUTCMonth()
+        }
+      },
+      () => {
+        let { startDate, endDate } = this.state;
+        if (startDate.year !== endDate.year && startDate.month !== endDate.month)
+          this.getShifstsData(endDate.year, endDate.month);
+        this.getShifstsData(startDate.year, startDate.month);
+      }
+    );
   };
   onEditEvent = event => {
     if (event.editable) {
@@ -196,7 +278,6 @@ class UserShifts extends Component {
         isOfficialHoliday = activeHoliday[0].official === 'O';
         isHoliday = activeHoliday[0].official === 'C';
       }
-      this.props.onEditEvent(event);
       this.setState({
         currentEvent: event,
         open: true,
@@ -235,23 +316,30 @@ class UserShifts extends Component {
       });
     }
   };
-  onUdateStart = (event, newStart) => {
-    this.onUpdateEventLenght(newStart, event.end, event.start, newStart, false);
+  onUdateStart = async (event, newStart) => {
+    return await this.onUpdateEventLenght(event, newStart, event.end, event.start, newStart, false);
   };
-  onUpdateEnd = (event, newEnd) => {
-    this.onUpdateEventLenght(event.start, newEnd, newEnd, event.end, true);
+  onUpdateEnd = async (event, newEnd) => {
+    return await this.onUpdateEventLenght(event, event.start, newEnd, newEnd, event.end, true);
   };
   onUpdateEventLenght = (event, start, end, delStart, delEnd, flip) => {
     event = this.eventRules(event, event.title, start, end);
     this.onDeleteRemaining(event, delStart, delEnd, flip);
     this.onEdit(event, start, end);
-    this.setState({
-      pendingSave: true
+    return new Promise(resolve => {
+      this.setState(
+        {
+          pendingSave: true
+        },
+        resolve(event)
+      );
     });
   };
-  setViewModel = (viewModel)=>{
-      this.setState({viewModel})
-  }
+  setViewModel = viewModel => {
+    this.setState({ viewModel });
+  };
+  //#endregion
+
   activateOptions = () => {
     let { newEvent, currentEvent } = this.state;
     let actual = newEvent || currentEvent;
@@ -284,7 +372,10 @@ class UserShifts extends Component {
     });
   };
   toggleEdit = event => {
-    this.setState({ enableEdit: !this.state.enableEdit });
+    let { enableEdit } = this.state;
+    this.setState({ enableEdit: !enableEdit });
+    console.log('toggleEdit', this.calendarRef);
+    this.calendarRef.child.updateSchedulerSetings();
   };
   onCloseShiftSelect = () => {
     this.setState({
@@ -317,6 +408,7 @@ class UserShifts extends Component {
   onSave = () => {
     let { entrys } = this.state;
     this.setState({ pendingUpdate: {} });
+    this.setLoading('save', true);
     var batch = db.batch();
     objectForEach(entrys, (year, months) => {
       objectForEach(months, (month, users) => {
@@ -328,10 +420,9 @@ class UserShifts extends Component {
     });
     // Commit the batch
     batch.commit().then(function() {
-      // ...
+      this.setLoading('save', false);
       console.log('succesfull save');
     });
-    console.log('Implement  set dirty cache');
   };
 
   /**
@@ -450,6 +541,7 @@ class UserShifts extends Component {
       resizable
     };
   };
+
   getEventProperties(code) {
     let editable = true;
     let movable = true;
@@ -520,8 +612,10 @@ class UserShifts extends Component {
    * @param {number} [month]
    */
   getShifstsData = (year, month) => {
+    let { users } = this.state;
+    let retrieveCount = users.length > 0 ? users.length : 50;
     let path = 'wsinf/' + year + '/' + month;
-    getData(path, 50, this.processShiftQuery, year, month);
+    getData(path, retrieveCount, this.processShiftQuery, year, month);
   };
   /**
    * @param {number} [year]
@@ -529,7 +623,7 @@ class UserShifts extends Component {
    */
   getShifstsMoreData = (year, month) => {
     let path = 'wsinf/' + year + '/' + month;
-    getMoreData(path, 50, this.processShiftQuery, this.state.lastEntry, year, month);
+    getMoreData(path, 50, this.processShiftQuery, this.state.lastShiftEntry, year, month);
   };
   /**
    * @param {any} snapshot
@@ -539,17 +633,24 @@ class UserShifts extends Component {
    */
   processShiftQuery = (snapshot, year, month) => {
     let lastVisible = snapshot.docs[snapshot.docs.length - 1];
-    let { entrys, lastEntry } = this.state;
+    let { entrys, lastShiftEntry, pendingUpdate } = this.state;
 
     snapshot.docs.forEach(user => {
       entrys = this.setEntrys(entrys, year, month, user.id, user.data().m);
     });
-
+    //merge pending update with the fetch data to keep the changes made
+    objectForEach(pendingUpdate, (year, months) => {
+      objectForEach(months, (month, users) => {
+        for (let user in users) {
+          this.setEntrys(entrys, year, month, user, users[user].shifts);
+        }
+      });
+    });
     return new Promise(resolve => {
       this.setState(
         {
           entrys: entrys,
-          lastEntry: lastVisible ? lastVisible : lastEntry
+          lastShiftEntry: lastVisible ? lastVisible : lastShiftEntry
         },
         () => {
           resolve();
