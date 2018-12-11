@@ -175,7 +175,7 @@ class UserShifts extends Component {
           />
           <label htmlFor="contained-button-file">
             <AvChip
-              cAr={['red', 700, 900]}
+              cAr={['green', 700, 900]}
               avatar={<Forward style={{ transform: 'rotate(-90deg)' }} />}
               label="Upload File"
               clickable={true}

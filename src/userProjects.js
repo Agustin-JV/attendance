@@ -12,18 +12,45 @@ import {
   Delete,
   OpenInBrowser,
   PersonAdd,
-  NoteAdd,
   LineStyle,
-  PowerInput
+  PowerInput,
+  Forward
 } from '@material-ui/icons';
-import { mergeArrays } from './utils';
+import { mergeArrays, isEmpty, arrayMatchPattern } from './utils';
 import Pagination from './pagination';
 import AvChip from './avatarChip';
 import { getData, getMoreData } from './fbGetPaginatedData';
+import { handleFile, XLSX } from './loadXlsx';
 //#endregion
+
+/**
+ * @typedef   {Object}  User
+ * @property  {Timestamp}  [creation_date]
+ * @property  {string}  name
+ * @property  {string}  project
+ * @property  {string}  project_code
+ * @property  {string|number}  rm_sap_id
+ * @property  {string|number}  sap_id
+ */
+/**
+ * @typedef   {Object}  Loading
+ * @property  {boolean}  load
+ * @property  {boolean}  save
+ * @property  {boolean}  upload
+ */
+/**
+ * @typedef  {Object}   State
+ * @property {boolean}  open
+ * @property {{}}       options
+ * @property {boolean}  edit
+ * @property {User[]}   rows
+ * @property {Loading}  loading
+ * @property {number}   page
+ */
 class UserProjects extends React.Component {
   constructor(props) {
     super(props);
+    /** @type {State} */
     this.state = {
       open: false,
       title: 'Home',
@@ -38,7 +65,8 @@ class UserProjects extends React.Component {
       pendingUpdate: [],
       page: 0,
       allrows: false,
-      keys: []
+      keys: [],
+      loading:{ load: false, upload: false, save: false }
     };
   }
   ref = null;
@@ -76,7 +104,7 @@ class UserProjects extends React.Component {
   };
   render() {
     const { classes } = this.props;
-    const { rows } = this.state;
+    const { rows ,loading} = this.state;
     return (
       <Card style={{ width: '850px' }}>
         <CardContent>
@@ -168,19 +196,84 @@ class UserProjects extends React.Component {
             disabled={this.state.pendingUpdate.length > 0}
             clickable={this.state.pendingUpdate.length > 0}
           />
+           <input
+            accept=".xlsx"
+            style={{ display: 'none' }}
+            id="contained-button-file"
+            multiple
+            type="file"
+            onChange={this.loadFile}
+          />
+          <label htmlFor="contained-button-file">
           <AvChip
             cAr={['grey', 500, 700]}
-            avatar={<NoteAdd />}
-            label="Update from file <Comming Soon>"
+            avatar={<Forward  style={{ transform: 'rotate(-90deg)' }}/>}
+            label="Update from file"
             variant="outlined"
             hide={!this.state.edit}
+            loading={loading['upload']}
             clickable={true}
           />
+          </label>
         </CardActions>
         <NewUserTableForm open={this.state.open} newRow={this.newRow} onClose={this.handleClose} />
       </Card>
     );
   }
+
+
+  //#region UploadFile
+  loadFile = e => {
+    this.setLoading('upload', true);
+    handleFile(this.fileCallback)(e);
+  };
+  fileCallback = wb => {
+    console.log('fileCallback', wb);
+    if (wb !== undefined) {
+      var ws = wb.Sheets[wb.SheetNames[0]];
+      var data = XLSX.utils.sheet_to_json(ws, {
+        header: 1
+      });
+      this.processData(data);
+    } else {
+      this.setLoading('upload', false);
+    }
+  };
+  processData = data => {
+    let pattern = ['string','string|number','string','string|number','string','string|number' ]
+    /** @type {User[]} */
+    let batch = [];
+    for (let x in data) {
+      if (!isEmpty(data[x])) {
+        let matchPattern = arrayMatchPattern(data[x], pattern);
+        let info = data[x];
+        if (matchPattern) {
+          if(info[0].toLowerCase().trim()!=='project')
+          batch.push({
+            project: info[0],
+            sap_id: info[1],
+            name: info[2],
+            project_code: info[3],
+            client: info[4],
+            rm_sap_id: info[5],
+          });
+          
+        }
+      }
+    }
+    if (batch.length > 0) {
+      this.updateFromData(batch);
+    }
+    this.setLoading('upload', false);
+  };
+  //#endregion
+
+  setLoading(key, value) {
+    let { loading } = this.state;
+    loading[key] = value;
+    this.setState({ loading });
+  }
+
   rowClick = (e, row) => {
     //e - the click event object
     //row - row component
@@ -256,15 +349,18 @@ class UserProjects extends React.Component {
           goodData.push(obj);
         }
       }
-      const { rows, pendingUpdate } = this.state;
-      this.setState({
-        rows: mergeArrays(goodData, rows, 'sap_id'),
-        pendingUpdate: mergeArrays(goodData, pendingUpdate, 'sap_id')
-      });
-      this.ref.table.updateOrAddData(goodData);
-      this.paginationRef.forceUpdateRows();
+      this.updateFromData(goodData);
     }
   };
+  updateFromData =(data)=>{
+    const { rows, pendingUpdate } = this.state;
+      this.setState({
+        rows: mergeArrays(data, rows, 'sap_id'),
+        pendingUpdate: mergeArrays(data, pendingUpdate, 'sap_id')
+      });
+      this.ref.table.updateOrAddData(data);
+      this.paginationRef.forceUpdateRows();
+  }
   copyAll = () => {
     this.ref.table.copyToClipboard();
   };
@@ -283,6 +379,7 @@ class UserProjects extends React.Component {
       return snapshot.id;
     });
     const { rows } = this.state;
+    console.log(rows)
     return new Promise((resolve, reject) => {
       this.setState(
         {

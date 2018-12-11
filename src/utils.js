@@ -97,10 +97,11 @@ export function arrayMatchPattern(array, pattern) {
     let exec = regex.exec(pattern[x]);
     let [,a,b] = exec;
     let type = typeof array[x];
-    if (b!== '' && (type !== a && type !== b) && pattern[x] !== 'any') {
+
+    if ((b!== '' && (type !== a && type !== b)) && pattern[x] !== 'any') {
       return false;
     }
-    else if ( type !== a  && a !== 'any') {
+    else if ( type !== a && b===''  && a !== 'any') {
       return false;
     }
   }

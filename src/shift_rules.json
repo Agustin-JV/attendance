@@ -1,0 +1,30 @@
+{
+    "shifltLenght": {
+        "hh": 6,
+        "mm": 49,
+        "ss": 59
+    },
+    "tolerance": 6,
+    "sundeyBonus": 25,
+    "weekendBonus": 230,
+    "weekBonus": 230,
+    "nightBonus": 500,
+    "currency": "MXN",
+    "maxDelays": 2,
+    "delayDiscount": 50,
+    "inRangeTolerance": 6,
+    "shifts": {
+        "day": {
+            "in": "13:00",
+            "out": "21:00"
+        },
+        "morning": {
+            "in": "06:00",
+            "out": "13:00"
+        },
+        "night": {
+            "in": "21:00",
+            "out": "06:00"
+        }
+    }
+}

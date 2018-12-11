@@ -7,6 +7,7 @@ import Home from './home';
 import UserProjects from './userProjects';
 import HolydayPlanner from './holidayPlanner';
 import SecurityPannel from './securityPannel';
+import UploadFiles from './uploadFiles';
 const InApp = props => (
   <Router>
     <Layout auth={props.auth}>
@@ -15,6 +16,7 @@ const InApp = props => (
       <Route path="/projects" component={UserProjects} />
       <Route path="/holidays" component={HolydayPlanner} />
       <Route path="/security" component={SecurityPannel} />
+      <Route path="/upload-files" component={UploadFiles} />
     </Layout>
   </Router>
 );
