@@ -8,10 +8,11 @@ import {
   enableLoading,
   isTimeNightS
 } from './utils';
-import tableStructures from './table_structures.json';
+import * as tableStructures from './table_structures.json';
 import shift_rules from './shift_rules.json';
 import { addUpdate } from './indexeddb_tools';
 import { getShift } from './shift_rules';
+import { detectIE } from './detectBrowser';
 /**
  * Adds the info of in and out of the secure room
  * @param {object} data, hsin if a matrix
@@ -82,12 +83,24 @@ export async function process(data) {
   let userNumner = '';
   let timeregex = /[0-9]{2}:[0-9]{2}/;
   let nameregex = /^(([\u00C0-\u017Fa-zA-ZñÑ+]+\s{0,1})+)+\s*,\s*(([\u00C0-\u017Fa-zA-ZñÑ+]+\s{0,1})+)+\s*[\D\s()a-zA-Z]*#([0-9]+)/; // /^([\wñÑ+\s*]+)+,\s*([\wñÑ+\s*]+)\s*(\W\s*[\w+\s*]*\s*\W)*\s*#([0-9]+)/; // /^([\wñÑ+\s*]+)+,\s*([\wñÑ+\s*]+)#([0-9]+)/;
-
+  let start, sampePeriod,
+    end = '';
+  let seregex = /[0-9]+(?=.?)/g;
+  let fileDateTag = data[9][56];
+  if (fileDateTag === 'From:') {
+    let s = data[9][64].match(seregex);
+    let e =data[9][73].match(seregex);
+    start = new Date(s[2],Number(s[1])-1,s[0],s[3],s[4],s[5])
+    end =new Date(e[2],Number(e[1])-1,e[0],e[3],e[4],e[5])
+    sampePeriod = (s[2] === e[2] && s[1]===e[1])
+    console.log('process dates' ,start,end)
+  }
   for (let d = 0; d < data.length; d++) {
     //------In For->
     if (!isEmpty(data[d])) {
       let departmentUser = data[d][6];
       let dateTag = data[d][0];
+
       //----Switch->
       switch (dateTag) {
         case 'Department :':
@@ -127,13 +140,13 @@ export async function process(data) {
           }
           break;
       }
+
       //<----Switch
     }
     //<-----In For
   }
-  console.log(dataout);
 
- return await attendance(dataout);
+  return await attendance(dataout, {department,start,end,sampePeriod});
 }
 export async function porcess2(data) {
   let currentUserID = -1;
@@ -189,7 +202,7 @@ export async function porcess2(data) {
     }
   }
 
- return await attendance(dataout);
+  return await attendance(dataout);
 }
 const filteredEntryPerDay = function(entrys, day) {
   return entrys.filter(entry => entry.week === day);
@@ -297,21 +310,27 @@ function fillDates(days) {
   }
 }
 
-async function attendance(attendance) {
+async function attendance(attendance, fileData) {
   //var t0 = performance.now();
-  let usersOut = {}
-  let dayOut = {}
+  let usersOut = [];
+  let dayOut = [];
   let pad = attendance.departments;
   for (let d in pad) {
     for (let x in pad[d].users) {
       //---------------------------------USERS-------------------------------
       let user = {
         name: pad[d].users[x].user.toUpperCase().trim(),
-        room: d
+        room: d,
+        badge: x
       };
-      let userResponce = await addUpdate(user, user.name, tableStructures.users, 'name', 'user_id');
-      usersOut[user.name] = user
-      showProgress('Reading User #' + userResponce);
+      let userResponce = 0;
+
+      //userResponce = await addUpdate(user, user.name, tableStructures.attendance.object_stores.users, 'name', 'user_id');
+
+      userResponce = user.badge;
+
+      usersOut.push(user);
+      //delete showProgress('Reading User #' + userResponce);
 
       // --------------------------------DAYS--------------------------------
       for (let y in pad[d].users[x].days) {
@@ -359,9 +378,9 @@ async function attendance(attendance) {
               }
             }
           }
-          showProgress(
-            'Processing User #' + userResponce + ' day:' + x + ' processing entry #' + z
-          );
+          //delete showProgress(
+          //delete  'Processing User #' + userResponce + ' day:' + x + ' processing entry #' + z
+          //delete );
         }
         let dbT = msToTime(timeIn * 86400000);
         let time_inTest = new Date(timeIn * 86400000);
@@ -373,7 +392,7 @@ async function attendance(attendance) {
           shift_rules.shifltLenght.mm,
           shift_rules.shifltLenght.ss
         );
-        if (pad[d].users[x].days[y].entrys.length != 0)
+        /*if (pad[d].users[x].days[y].entrys.length != 0)
           console.log(
             user.name +
               ' in:' +
@@ -395,7 +414,7 @@ async function attendance(attendance) {
             'color: #e2dd34',
             'color: #00ff15',
             'color: #e2dd34'
-          );
+          );*/
         let day = {
           user_id: userResponce,
           day_of_week: y.toUpperCase().trim(),
@@ -410,22 +429,25 @@ async function attendance(attendance) {
           on_time: shift.onTime,
           week_number: weekDate.getWeek()
         };
-        showProgress('Processing User #' + userResponce + ' day:' + y);
-        let dayResponce = await addUpdate(
-          day,
-          [day.year, day.month, day.day, day.user_id],
-          tableStructures.days,
-          'date_user',
-          'id'
-        );
-        dayOut[[day.year, day.month, day.day, day.user_id].join('-')] = day
+        //delete showProgress('Processing User #' + userResponce + ' day:' + y);
+        /*if (detectIE() === false){
+          let dayResponce = await addUpdate(
+            day,
+            [day.year, day.month, day.day, day.user_id],
+            tableStructures.attendance.object_stores.days,
+            'date_user',
+            'id'
+          );
+        }*/
+        //change day.user_id to usersOut.length for explorer
+        dayOut.push(day);
       }
     }
   }
   //let t1 = performance.now();
-  enableLoading(false);
-  return {users:usersOut,days:dayOut}
-  console.log({users:usersOut,days:dayOut})
+  //delete enableLoading(false);
+
+  return { users: usersOut, days: dayOut,  data:fileData  };
   //alert('Attendance local upload process done in: '+((t1-t0)/1000)+' sec');
 }
 

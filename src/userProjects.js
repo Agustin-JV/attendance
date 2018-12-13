@@ -240,7 +240,7 @@ class UserProjects extends React.Component {
     }
   };
   processData = data => {
-    let pattern = ['string','string|number','string','string|number','string','string|number' ]
+    let pattern = ['string','string|number','string','string|number','string','string|number','number' ]
     /** @type {User[]} */
     let batch = [];
     for (let x in data) {
@@ -256,6 +256,7 @@ class UserProjects extends React.Component {
             project_code: info[3],
             client: info[4],
             rm_sap_id: info[5],
+            badge: info[6]
           });
           
         }
@@ -341,10 +342,10 @@ class UserProjects extends React.Component {
       //Here we have to discrimine between  the rows that are actual data and the ones that a are garbage
       for (let x in rowData) {
         let raw = rowData[x].split('\t');
-        let [sap_id, name, project, project_code, client, rm_sap_id] = raw;
+        let [sap_id, name, project, project_code, client, rm_sap_id,badge] = raw;
         let sap_id2 = Number(sap_id);
         let rm_sap_id2 = Number(rm_sap_id);
-        let obj = { sap_id, name, project, project_code, client, rm_sap_id };
+        let obj = { sap_id, name, project, project_code, client, rm_sap_id, badge };
         if (!isNaN(sap_id2) && sap_id2 !== 0 && rm_sap_id2 !== 0 && !isNaN(rm_sap_id2)) {
           goodData.push(obj);
         }
@@ -417,6 +418,8 @@ class UserProjects extends React.Component {
           batch.delete(deleteRef);
         } else {
           var userRef = db.collection('users').doc(pendingUpdate[x].sap_id);
+          console.log(pendingUpdate[x])
+          pendingUpdate[x].badge = pendingUpdate[x].badge|| 'N/A'
           batch.update(userRef, pendingUpdate[x]);
         }
       }
@@ -506,6 +509,13 @@ const columns = [
   {
     title: 'Rm ID',
     field: 'rm_sap_id',
+    align: 'center',
+    width: 100,
+    accessorClipboard: true
+  },
+  {
+    title: 'Badge ID',
+    field: 'badge',
     align: 'center',
     width: 100,
     accessorClipboard: true
