@@ -78,6 +78,13 @@ export function objectMap(object, mapFn) {
     return mapFn(key, object[key]);
   });
 }
+export function objectFilterToArray(object, filterFN) {
+  let result = []
+  Object.keys(object).forEach(function(key) {
+    result.push(filterFN(key, object[key]));
+  });
+  return result
+}
 export function objectForEach(object, mapFn) {
   return Object.keys(object).forEach(function(key) {
     mapFn(key, object[key]);
