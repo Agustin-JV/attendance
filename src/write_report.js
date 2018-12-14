@@ -20,7 +20,7 @@ export function finalReport(sundays, shiftAllowance, showAllEntrys) {
     new Date().toISOString() +
     '_.xlsx';
 
-  const wbout = XLSX.write(wb, { bookType:'xlsx', bookSST:false, type:'array'  });
+  const wbout = XLSX.write(wb, { bookType: 'xlsx', bookSST: false, type: 'array' });
 
   fileDownload(wbout, name);
 }

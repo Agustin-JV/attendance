@@ -203,11 +203,11 @@ export async function addUpdate(object, query, recipe, idex) {
     let responce = await updateData(recipe, newObject);
     //responce => key or 'error' error if there was a problem when updating
     if (responce === 'error') {
-      alert('there was an error while updating: ' + JSON.stringify(object));
+      console.error('206 there was an error while updating: ' + JSON.stringify(object));
     }
     return result[0][recipe.keyPath];
   } else if (result !== undefined && result.length >= 1) {
-    alert('duplicated Days, something went wrong');
+    console.warn('duplicated data , something went wrong indexddb_tools :210');
   } else {
     return addData(object, recipe);
   }

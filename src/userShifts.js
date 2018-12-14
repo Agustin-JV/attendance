@@ -218,29 +218,33 @@ class UserShifts extends Component {
     }
   };
   processData = data => {
+    console.log(data);
     let pattern = arrayBuildComplexPattern({
-      '0': 'string|number',
-      '1': 'number',
-      '2': 'string',
-      '3-33': 'string|undefined'
+      '0': 'string',
+      '1': 'string|number',
+      '2': 'number',
+      '3': 'string',
+      '4-34': 'string|undefined'
     });
     let batch = [];
+    console.log(pattern)
     for (let x in data) {
       if (!isEmpty(data[x])) {
         let matchPattern = arrayMatchPattern(data[x], pattern);
-        let info = data[x].splice(0, 3);
+        let info = data[x].splice(0, 4);
         if (matchPattern) {
           let days = Object.assign({}, data[x]);
           for (let day in days) {
             batch.push({
-              userId: info[0],
+              userId: info[1],
               code: days[day].toUpperCase(),
-              date: new Date(info[1], getMonth(info[2], true), Number(day) + 1)
+              date: new Date(info[2], getMonth(info[3], true), Number(day) + 1)
             });
           }
         }
       }
     }
+    console.log(batch)
     if (batch.length > 0) {
       this.batchUpdate(batch);
     }
@@ -419,11 +423,12 @@ class UserShifts extends Component {
       });
     });
     // Commit the batch
-    batch.commit().then(function() {
-      this.setLoading('save', false);
-      console.log('succesfull save');
-    });
+    batch.commit().then(
+      this.setLoading('save', false)
+      
+    );
   };
+
 
   /**
    * Gets the holidays that occur on a given time frame

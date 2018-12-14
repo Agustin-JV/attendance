@@ -58,7 +58,7 @@ class UploadFiles extends React.Component {
             />
           </label>
 
-          {rows.length > 0 ? (
+          {rows.length>0 && loading['process'] === false ? (
             <ReactTabulator
               ref={ref => (this.ref = ref)}
               columns={this.columns}
@@ -133,7 +133,7 @@ class UploadFiles extends React.Component {
    */
   getShifstsData = (year, month, user_id) => {
     let path = 'wsinf/' + year + '/' + month;
-    getDocument(path, user_id, this.processShiftQuery, user_id, year, month);
+    getDocument(path, String(user_id), this.processShiftQuery, user_id, year, month);
   };
   /**
    * @param {any} snapshot
@@ -203,6 +203,7 @@ class UploadFiles extends React.Component {
   };
   processData = async data => {
     let d = await process(data);
+    console.log(d)
     this.getData();
     this.setState({ rawData: d });
   };

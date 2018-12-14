@@ -66,7 +66,7 @@ class UserProjects extends React.Component {
       page: 0,
       allrows: false,
       keys: [],
-      loading:{ load: false, upload: false, save: false }
+      loading: { load: false, upload: false, save: false }
     };
   }
   ref = null;
@@ -104,7 +104,7 @@ class UserProjects extends React.Component {
   };
   render() {
     const { classes } = this.props;
-    const { rows ,loading} = this.state;
+    const { rows, loading } = this.state;
     return (
       <Card style={{ width: '850px' }}>
         <CardContent>
@@ -196,7 +196,7 @@ class UserProjects extends React.Component {
             disabled={this.state.pendingUpdate.length > 0}
             clickable={this.state.pendingUpdate.length > 0}
           />
-           <input
+          <input
             accept=".xlsx"
             style={{ display: 'none' }}
             id="contained-button-file"
@@ -205,22 +205,21 @@ class UserProjects extends React.Component {
             onChange={this.loadFile}
           />
           <label htmlFor="contained-button-file">
-          <AvChip
-            cAr={['grey', 500, 700]}
-            avatar={<Forward  style={{ transform: 'rotate(-90deg)' }}/>}
-            label="Update from file"
-            variant="outlined"
-            hide={!this.state.edit}
-            loading={loading['upload']}
-            clickable={true}
-          />
+            <AvChip
+              cAr={['grey', 500, 700]}
+              avatar={<Forward style={{ transform: 'rotate(-90deg)' }} />}
+              label="Update from file"
+              variant="outlined"
+              hide={!this.state.edit}
+              loading={loading['upload']}
+              clickable={true}
+            />
           </label>
         </CardActions>
         <NewUserTableForm open={this.state.open} newRow={this.newRow} onClose={this.handleClose} />
       </Card>
     );
   }
-
 
   //#region UploadFile
   loadFile = e => {
@@ -240,7 +239,15 @@ class UserProjects extends React.Component {
     }
   };
   processData = data => {
-    let pattern = ['string','string|number','string','string|number','string','string|number','number' ]
+    let pattern = [
+      'string',
+      'string|number',
+      'string',
+      'string|number',
+      'string',
+      'string|number',
+      'number'
+    ];
     /** @type {User[]} */
     let batch = [];
     for (let x in data) {
@@ -248,17 +255,16 @@ class UserProjects extends React.Component {
         let matchPattern = arrayMatchPattern(data[x], pattern);
         let info = data[x];
         if (matchPattern) {
-          if(info[0].toLowerCase().trim()!=='project')
-          batch.push({
-            project: info[0],
-            sap_id: info[1],
-            name: info[2],
-            project_code: info[3],
-            client: info[4],
-            rm_sap_id: info[5],
-            badge: info[6]
-          });
-          
+          if (info[0].toLowerCase().trim() !== 'project')
+            batch.push({
+              project: info[0],
+              sap_id: info[1],
+              name: info[2],
+              project_code: info[3],
+              client: info[4],
+              rm_sap_id: info[5],
+              badge: info[6]
+            });
         }
       }
     }
@@ -342,7 +348,7 @@ class UserProjects extends React.Component {
       //Here we have to discrimine between  the rows that are actual data and the ones that a are garbage
       for (let x in rowData) {
         let raw = rowData[x].split('\t');
-        let [sap_id, name, project, project_code, client, rm_sap_id,badge] = raw;
+        let [sap_id, name, project, project_code, client, rm_sap_id, badge] = raw;
         let sap_id2 = Number(sap_id);
         let rm_sap_id2 = Number(rm_sap_id);
         let obj = { sap_id, name, project, project_code, client, rm_sap_id, badge };
@@ -353,15 +359,15 @@ class UserProjects extends React.Component {
       this.updateFromData(goodData);
     }
   };
-  updateFromData =(data)=>{
+  updateFromData = data => {
     const { rows, pendingUpdate } = this.state;
-      this.setState({
-        rows: mergeArrays(data, rows, 'sap_id'),
-        pendingUpdate: mergeArrays(data, pendingUpdate, 'sap_id')
-      });
-      this.ref.table.updateOrAddData(data);
-      this.paginationRef.forceUpdateRows();
-  }
+    this.setState({
+      rows: mergeArrays(data, rows, 'sap_id'),
+      pendingUpdate: mergeArrays(data, pendingUpdate, 'sap_id')
+    });
+    this.ref.table.updateOrAddData(data);
+    this.paginationRef.forceUpdateRows();
+  };
   copyAll = () => {
     this.ref.table.copyToClipboard();
   };
@@ -380,7 +386,7 @@ class UserProjects extends React.Component {
       return snapshot.id;
     });
     const { rows } = this.state;
-    console.log(rows)
+    console.log(rows);
     return new Promise((resolve, reject) => {
       this.setState(
         {
@@ -414,13 +420,13 @@ class UserProjects extends React.Component {
       for (let x in pendingUpdate) {
         if (pendingUpdate[x][pendingUpdate[x].sap_id] === 0) {
           // Delete the user
-          var deleteRef = db.collection('users').doc(pendingUpdate[x].sap_id);
+          var deleteRef = db.collection('users').doc(String(pendingUpdate[x].sap_id));
           batch.delete(deleteRef);
         } else {
-          var userRef = db.collection('users').doc(pendingUpdate[x].sap_id);
-          console.log(pendingUpdate[x])
-          pendingUpdate[x].badge = pendingUpdate[x].badge|| 'N/A'
-          batch.update(userRef, pendingUpdate[x]);
+          var userRef = db.collection('users').doc(String(pendingUpdate[x].sap_id));
+          console.log(pendingUpdate[x]);
+          pendingUpdate[x].badge = pendingUpdate[x].badge || 'N/A';
+          batch.set(userRef, pendingUpdate[x]);
         }
       }
       // Commit the batch
