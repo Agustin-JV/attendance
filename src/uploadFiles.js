@@ -94,7 +94,7 @@ class UploadFiles extends React.Component {
     this.setLoading('process', true);
     this.getCurrentUserShifts();
   };
-  constinueBuildReport = () => {
+  constinueBuildReport = async () => {
     let { rows, rawData, shifts } = this.state;
     let users = rows.filter(user=>user.sap_id!=='N/A');
     let days = rawData['days'];
@@ -142,12 +142,11 @@ class UploadFiles extends React.Component {
    * @return {Promise} emty
    */
   processShiftQuery = (document, user_id, year, month) => {
-    console.log(user_id, document.data(), year, month);
     if (document.data()) {
       let s = document.data().m;
       let user_shifts = [];
       for(let day in s){
-        user_shifts.push({day, year,month,user_id,code:s[day]})
+        user_shifts.push({day:Number(day), year,month,user_id,code:s[day]})
       }
       let { shifts } = this.state;
 
@@ -177,7 +176,6 @@ class UploadFiles extends React.Component {
     let complete = true;
     pendingSR.forEach(x => {
       if (!completeSR.find(y => { return (y.year === x.year)&&(y.month === x.month)&&(y.user_id === x.user_id) })) {
-        console.log('iasc',false);
         complete = false;
       }
     });
@@ -193,7 +191,6 @@ class UploadFiles extends React.Component {
     handleFile(this.fileCallback)(e);
   };
   fileCallback = wb => {
-    console.log('fileCallback', wb);
     if (wb !== undefined) {
       var ws = wb.Sheets[wb.SheetNames[0]];
       var data = XLSX.utils.sheet_to_json(ws, {
@@ -206,7 +203,6 @@ class UploadFiles extends React.Component {
   };
   processData = async data => {
     let d = await process(data);
-    console.log('pd uf', d);
     this.getData();
     this.setState({ rawData: d });
   };
@@ -217,7 +213,6 @@ class UploadFiles extends React.Component {
     for (let idx in rawData.users) {
       let badge = rawData.users[idx].badge;
       let user = users.find(x => Number(x.badge) === Number(badge));
-      console.log('rawData', rawData.users[idx]);
 
       rows.push({
         sap_id: user ? user.sap_id : 'N/A',

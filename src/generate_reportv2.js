@@ -1,7 +1,8 @@
 //@ts-check
 import shift_rules from './shift_rules.json';
-import { getMonth, isEmpty, isAny, msToTime, getNextDay,objectFilterToArray } from './utils';
+import {  isEmpty, isAny, msToTime, getNextDay } from './utils';
 import { finalReport } from './write_report';
+
 
 /** 
  * @typedef {Object} OldUser
@@ -56,7 +57,7 @@ import { finalReport } from './write_report';
  * @property {number} year 2018
  */
 
-/** 
+/**
  * @typedef {Object} DayFormat
  * @property {string} absent
  * @property {number} day
@@ -64,7 +65,7 @@ import { finalReport } from './write_report';
  * @property {string} in
  * @property {number} month
  * @property {string} on_time
- * @property {string} shift 
+ * @property {string} shift
  * @property {number} time_in
  * @property {number} week_number
  * @property {number} user_id  = badge
@@ -78,45 +79,28 @@ import { finalReport } from './write_report';
  * @param {DayFormat[]} days
  * @param {boolean} [showAllEntry]
  */
-export function calc(users, shifts, days,showAllEntrys = false) {
+export function calc(users, shifts, days, showAllEntrys = false) {
   let output = { weekReports: [], sundayReports: [] };
-  console.log('calc',users, shifts, days,showAllEntrys)
-  
-  
+ 
   users.forEach(user => {
-    console.log('needs right format for shifts')
-    let userShift = shifts.filter(shift => (shift.user_id === user.sap_id));
-    let userDays =  days.filter(day => day.user_id === user.badge);
-    console.log('userDays',userDays)
-    output = processUserWSINF(user, userShift,userDays,showAllEntrys,output);
+    let userShift = shifts.filter(shift => shift.user_id === user.sap_id);
+    let userDays = days.filter(day => day.user_id === user.badge);
+    console.log('userDays', userDays);
+    output = processUserWSINF(user, userShift, userDays, showAllEntrys, output);
   });
-  console.log(output)
-  finalReport(output.sundayReports, output.weekReports,showAllEntrys);
+  console.log(output);
+  finalReport(output.sundayReports, output.weekReports, showAllEntrys);
+}
 
-}
-/**
- * @param {User[]} users
- * @param {WSINF[]} shifts
- * @param {DayFormat[]} days
- * @param {boolean} showAllEntrys
- */
-function forEachUser(users, shifts,days ,output, showAllEntrys) {
-  users.forEach(user => {
-    console.log('needs right format for shifts')
-    let userShift = shifts.map(shift => (shift.sap_id = user.sap_id));
-    let userDays = days.map(day => (day.user_id = user.badge));
-    processUserWSINF(user, userShift,userDays,showAllEntrys,output);
-  });
-  console.log(output)
-  finalReport(output.sundayReports, output.weekReports);
-}
 /**
  * @param {User} user
  * @param {WSINF[]} shifts
  * @param {DayFormat[]} days
  * @param {boolean} showAllEntrys
  */
- function processUserWSINF(user, shifts,days,showAllEntrys,output) {
+
+function processUserWSINF(user, shifts, days, showAllEntrys, output) {
+
   //Get all wsinf for the user
   let currentWeek = 0;
   let payMult = 1;
@@ -132,18 +116,20 @@ function forEachUser(users, shifts,days ,output, showAllEntrys) {
     shift_rules.shifltLenght.mm,
     shift_rules.shifltLenght.ss
   );
-  
+
 
   //console.log(user.name,wsinfs)
   //Iterate all shifts in peridod
   for (let x in shifts) {
-    let shift = shifts[x]
+    let shift = shifts[x];
     //console.log(user.name+" "+wsinfs[x])
     //only evaluetes shifts that ara S, NS, MS ...
-    if ( isAny(shift.code, 'S','NS','MS') ) {
+    if (isAny(shift.code, 'S', 'NS', 'MS')) {
       let amount = 0;
       // needs work
-      let day = days.find(day => day.year === shift.year && day.month === shift.month && day.day === shift.day )
+      let day = days.find(
+        day => day.year === shift.year && day.month === shift.month && day.day === shift.day
+      );
       if (!isEmpty(day)) {
         //Process week to manage latenes and reset the pay mult
         if (currentWeek !== day.week_number) {
@@ -166,10 +152,7 @@ function forEachUser(users, shifts,days ,output, showAllEntrys) {
             //Time inside the room is grater than min time
 
             if (dateTime > minTimeIn) {
-              if (
-                day.day_of_week.includes('SUNDAY') ||
-                day.day_of_week.includes('SATURDAY')
-              ) {
+              if (day.day_of_week.includes('SUNDAY') || day.day_of_week.includes('SATURDAY')) {
                 amount = shift_rules.weekendBonus;
               } else {
                 amount = shift_rules.weekBonus;
@@ -177,7 +160,12 @@ function forEachUser(users, shifts,days ,output, showAllEntrys) {
             } //else{ console.log('Early leave') }
           } else {
             let nextDate = getNextDay(day.year, day.month, day.day);
-            let nextDay = days.find(day => day.year === nextDate.getFullYear() && day.month === nextDate.getMonth() && day.day === nextDate.getDate() )
+            let nextDay = days.find(
+              day =>
+                day.year === nextDate.getFullYear() &&
+                day.month === nextDate.getMonth() &&
+                day.day === nextDate.getDate()
+            );
             if (!isEmpty(nextDay)) {
               let time2 = msToTime(nextDay.time_in * 86400000);
               time.hh += time2.hh;

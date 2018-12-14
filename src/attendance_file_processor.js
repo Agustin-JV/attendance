@@ -420,7 +420,7 @@ async function attendance(attendance, fileData) {
           day_of_week: y.toUpperCase().trim(),
           absent: pad[d].users[x].days[y].absent,
           day: _day,
-          month: _month,
+          month: _month+1,
           year: _year,
           in: _in,
           time_in: xlstime ? timeIn : timeIn / 8.64e7,
