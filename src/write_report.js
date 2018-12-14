@@ -1,10 +1,12 @@
 export const XLSX = require('xlsx');
 var fileDownload = require('js-file-download');
+
 //"use strict";
 /**
  * Revies one array of the columns for the extra for sundays
  * and another array for the extra pay for the shifts
  */
+
 export function finalReport(sundays, shiftAllowance, showAllEntrys) {
   let wb = {
     SheetNames: ['EXGRATIAGEO', 'SHIFTALLOWANCEGEO'],
@@ -23,6 +25,7 @@ export function finalReport(sundays, shiftAllowance, showAllEntrys) {
   const wbout = XLSX.write(wb, { bookType: 'xlsx', bookSST: false, type: 'array' });
 
   fileDownload(wbout, name);
+
 }
 function sheet1(rows) {
   let header = {
