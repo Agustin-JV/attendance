@@ -1,87 +1,62 @@
 import React from 'react';
+import { Avatar } from '@material-ui/core';
 import ListItem from '@material-ui/core/ListItem';
 import ListItemIcon from '@material-ui/core/ListItemIcon';
 import ListItemText from '@material-ui/core/ListItemText';
-import ListSubheader from '@material-ui/core/ListSubheader';
-import DashboardIcon from '@material-ui/icons/Dashboard';
-import ShoppingCartIcon from '@material-ui/icons/ShoppingCart';
-import PeopleIcon from '@material-ui/icons/People';
-import BarChartIcon from '@material-ui/icons/BarChart';
-import LayersIcon from '@material-ui/icons/Layers';
+import { BarChart, People, Dashboard } from '@material-ui/icons';
+import { Schedule, Settings, Person, Domain } from '@material-ui/icons';
 import { BeachAccess, EventNote, Unarchive, Security } from '@material-ui/icons';
-import AssignmentIcon from '@material-ui/icons/Assignment';
-import { Route } from 'react-router-dom';
-import { withRouter } from 'react-router-dom';
 import { Link } from 'react-router-dom';
+
+const LinkListItem = (link, icon, label) => {
+  return (
+    <Link to={link}>
+      <ListItem button>
+        <ListItemIcon>{icon}</ListItemIcon>
+        <ListItemText primary={label} />
+      </ListItem>
+    </Link>
+  );
+};
+const Subheader = (icon, label) => {
+  return (
+    <ListItem style={{ paddingLeft: 15 }}>
+      <Avatar>{icon}</Avatar>
+      <ListItemText secondary={label} />
+    </ListItem>
+  );
+};
+
 export const mainListItems = (
   <div>
-    <Link to="/dashboard">
-      <ListItem button>
-        <ListItemIcon>
-          <DashboardIcon />
-        </ListItemIcon>
-        <ListItemText primary="Dashboard" />
-      </ListItem>
-    </Link>
-    <Link to="/wsinf">
-      <ListItem button>
-        <ListItemIcon>
-          <EventNote />
-        </ListItemIcon>
-        <ListItemText primary="Calendars" />
-      </ListItem>
-    </Link>
-    <Link to="/projects">
-      <ListItem button>
-        <ListItemIcon>
-          <PeopleIcon />
-        </ListItemIcon>
-        <ListItemText primary="Users" />
-      </ListItem>
-    </Link>
-    <Link to="/upload-files">
-      <ListItem button>
-        <ListItemIcon>
-          <Unarchive />
-        </ListItemIcon>
-        <ListItemText primary="Upload Files" />
-      </ListItem>
-    </Link>
-    <Link to="/download-report">
-      <ListItem button>
-        <ListItemIcon>
-          <BarChartIcon />
-        </ListItemIcon>
-        <ListItemText primary="Reports" />
-      </ListItem>
-    </Link>
+    {LinkListItem('/dashboard', <Dashboard />, 'Dashboard')}
+    {LinkListItem('/wsinf', <EventNote />, 'Calendars')}
+    {LinkListItem('/projects', <People />, 'Users')}
+    {LinkListItem('/upload-files', <Unarchive />, 'Upload Files')}
+    {LinkListItem('/download-report', <BarChart />, 'Reports')}
   </div>
 );
 
-export const secondaryListItems = (
+//<ListSubheader inset>Shifts</ListSubheader>
+export const shitsListItems = (
   <div>
-    <ListSubheader inset>Saved reports</ListSubheader>
-    <ListItem button>
-      <ListItemIcon>
-        <AssignmentIcon />
-      </ListItemIcon>
-      <ListItemText primary="Current month" />
-    </ListItem>
-    <Link to="/security">
-      <ListItem button>
-        <ListItemIcon>
-          <Security />
-        </ListItemIcon>
-        <ListItemText primary="Security" />
-      </ListItem>
-    </Link>
-    <Link to="/holidays">
-      <ListItem button>
-        <ListItemIcon>
-          <BeachAccess />
-        </ListItemIcon>
-        <ListItemText primary="Holidays" />
-      </ListItem>
-    </Link>
+    {Subheader(<Schedule />, 'Shift')}
+    {LinkListItem('/schedules-rules', <Settings />, 'Schedules Rules')}
+    {LinkListItem('/holidays', <BeachAccess />, 'Holidays')}
+  </div>
+);
+
+export const appListItems = (
+  <div>
+    {Subheader(<Domain />, 'App')}
+    {LinkListItem('/app-settings', <Settings />, 'App Settings')}
+    {LinkListItem('/app-security', <Security />, 'App Security')}
+  </div>
+);
+
+export const myAccountListItems = (
+  <div>
+    {Subheader(<Person />, 'My Account')}
+    {LinkListItem('/settings', <Settings />, 'Settings2')}
   </div>
 );
