@@ -212,8 +212,8 @@ const styles = theme => ({
   content: {
     flexGrow: 1,
     padding: theme.spacing.unit * 3,
-    height: '100vh',
-    overflow: 'auto'
+    height: '100%',
+    overflow: 'auto',
   },
   chartContainer: {
     marginLeft: 22

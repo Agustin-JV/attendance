@@ -106,7 +106,7 @@ class UserProjects extends React.Component {
     const { classes } = this.props;
     const { rows, loading } = this.state;
     return (
-      <Card style={{ width: '850px' }}>
+      <Card className={classes.root}>
         <CardContent>
           <div>
             <ReactTabulator
@@ -442,6 +442,14 @@ class UserProjects extends React.Component {
 }
 //#region consts
 const styles = theme => ({
+  root: {
+    width: '850px',
+    align: 'center',
+    margin: '0 auto',
+    direction: 'ltr',
+    display: 'flex',
+    flexDirection: 'column'
+  },
   button: {
     margin: theme.spacing.unit
   },
