@@ -85,7 +85,6 @@ export function calc(users, shifts, days, showAllEntrys = false) {
   users.forEach(user => {
     let userShift = shifts.filter(shift => shift.user_id === user.sap_id);
     let userDays = days.filter(day => day.user_id === user.badge);
-    console.log('userDays', userDays);
     output = processUserWSINF(user, userShift, userDays, showAllEntrys, output);
   });
   console.log(output);
@@ -217,7 +216,7 @@ function processUserWSINF(user, shifts, days, showAllEntrys, output) {
           endTime: shift.code === 'NS' ? nsOut : day.out,
           remark: 'Shift Allowance'
         };
-        console.log(report, day.absent, !day.absent ? amount : 0, report.amount);
+        console.log(report, day.absent, !day.absent ? amount : 0, report.amount, msToTime(day.time_in * 86400000), shift.code ,day.in);
         weekReports.push(report);
       }
     }

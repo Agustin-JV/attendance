@@ -104,7 +104,6 @@ export function arrayMatchPattern(array, pattern) {
     let exec = regex.exec(pattern[x]);
     let [,a,b] = exec;
     let type = typeof array[x];
-
     if ((b!== '' && (type !== a && type !== b)) && pattern[x] !== 'any') {
       return false;
     }
@@ -121,10 +120,35 @@ export function arrayBuildComplexPattern( pattern) {
     let regex = /([0-9]+)-?([0-9]*)/g;
     let exec = regex.exec(range);
     let [, start, end] = exec;
-    if (end !== '') for (let i = start; i <= end; i++) simplePattern.push(pattern[range]);
+    console.log(start,end,exec)
+    if (end !== '') {
+      console.log('x',end-start)
+      for (let i = 0; i <= end-start; i++) {
+      console.log(i)
+        simplePattern.push(pattern[range]);
+      }
+    }
     else simplePattern.push(pattern[range]);
   }
+  console.log('CP', simplePattern)
   return simplePattern;
+}
+
+export function separateCamelCase(text, all = false) {
+  let m = text.match(/[A-Z]?[a-z]*/g);
+  if(all){
+    return capitalizeAll(m)
+  }
+  return capitalizeFirstLetter(m.join(' '));
+}
+function capitalizeAll(arr){
+  for(let x in arr){
+    arr[x] = capitalizeFirstLetter(arr[x])
+  }
+  return arr.join(' ')
+}
+export function capitalizeFirstLetter(string) {
+  return string.charAt(0).toUpperCase() + string.slice(1);
 }
 export function isEmpty(obj) {
   // null and undefined are "empty"
