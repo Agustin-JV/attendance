@@ -3,40 +3,41 @@ import shift_rules from './shift_rules.json';
 import {  isEmpty, isAny, msToTime, getNextDay } from './utils';
 import { finalReport } from './write_report';
 
-/**
+
+/** 
  * @typedef {Object} OldUser
  * @property {string} client
  * @property {string} name
  * @property {string} project
  * @property {string} projectCode
  * @property {numner} rmCode 10000002
- * @property {string} room
+ * @property {string} room 
  * @property {number} sap_id 10000001
- * @property {number} user_id
+ * @property {number} user_id 
  */
-/**
+/** 
  * @typedef {Object} User
  * @property {string} client
  * @property {string} name
  * @property {string} project
  * @property {string} projectCode
  * @property {numner} rmCode 10000002
- * @property {string} room
+ * @property {string} room 
  * @property {number} sap_id 10000001
  * @property {number} badge 7
  */
-/**
+/** 
  * @typedef {Object} InappUser
  * @property {string} client
  * @property {string} name
  * @property {string} project
  * @property {string} project_code
  * @property {numner} rm_sap_id 10000002
- * @property {string} [room]
+ * @property {string} [room] 
  * @property {number} sap_id 10000001
  * @property {number} badge 15
  */
-/**
+/** 
  * @typedef {Object} OldWSINF
  * @property {string} code
  * @property {number} day
@@ -47,7 +48,7 @@ import { finalReport } from './write_report';
  * @property {number} user_id 7
  */
 
-/**
+/** 
  * @typedef {Object} WSINF
  * @property {string} code
  * @property {number} day
@@ -98,6 +99,7 @@ export function calc(users, shifts, days, showAllEntrys = false) {
  */
 
 function processUserWSINF(user, shifts, days, showAllEntrys, output) {
+
   //Get all wsinf for the user
   let currentWeek = 0;
   let payMult = 1;
@@ -113,6 +115,7 @@ function processUserWSINF(user, shifts, days, showAllEntrys, output) {
     shift_rules.shifltLenght.mm,
     shift_rules.shifltLenght.ss
   );
+
 
   //console.log(user.name,wsinfs)
   //Iterate all shifts in peridod

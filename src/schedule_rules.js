@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { withStyles } from '@material-ui/core/styles';
+
 import { Tooltip, TextField, Typography, InputAdornment, MenuItem } from '@material-ui/core';
 import { ExpansionPanel, ExpansionPanelSummary, CircularProgress } from '@material-ui/core';
 import { Save, Edit, ExpandMore } from '@material-ui/icons';
@@ -11,6 +12,7 @@ import { separateCamelCase } from './utils';
 import AvChip from './avatarChip';
 import { db } from './fire_init';
 import { getDocument } from './fbGetPaginatedData';
+
 class ScheduleRules extends React.Component {
   constructor(props) {
     super(props);
@@ -194,6 +196,7 @@ class ScheduleRules extends React.Component {
       this.state.delay_discount +
       '%',
     delay_discount: 'The dicrease on the bonus pay for each delay cant excede 100%',
+
     night_bonus:
       'The extra pay for compleating ' +
       moment(this.state.shift_lenght).format('H[h]:mm[m]') +
@@ -211,21 +214,25 @@ class ScheduleRules extends React.Component {
     currency: 'The currency on which the payment will be done'
   });
   currencySelect = id => {
+
     const { classes } = this.props;
     const { readOnly } = this.state;
     return (
       <Tooltip title={this.tooltips()[id]}>
+
         <TextField
           select
           label={separateCamelCase(id, true)}
           value={this.state[id]}
           type="number"
           required={true}
+
           className={classes.textFieldSmall}
           margin="normal"
           onChange={this.onInputChange(id)}
           InputLabelProps={{ shrink: true }}
           InputProps={{
+
             readOnly: readOnly,
             inputProps: {
               form: 'schedule-rules-form'
@@ -243,6 +250,7 @@ class ScheduleRules extends React.Component {
     );
   };
   numberField = (id, adorment, startAdornment, max = 9999999999) => {
+
     const { classes } = this.props;
     const { readOnly } = this.state;
     return (
@@ -269,6 +277,7 @@ class ScheduleRules extends React.Component {
               min: 0,
               max: max
             }
+
           }}
         />
       </Tooltip>
@@ -300,6 +309,7 @@ class ScheduleRules extends React.Component {
     );
   };
 }
+
 
 const ExpansionBlock = props => (
   <ExpansionPanel style={{ backgroundColor: '#fff' }}>
@@ -338,6 +348,7 @@ const styles = theme => ({
     marginLeft: theme.spacing.unit,
     marginRight: theme.spacing.unit,
     width: 120
+
   },
   actions: {
     display: 'flex',
