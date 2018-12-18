@@ -28,15 +28,16 @@ class UploadFiles extends React.Component {
       rawData: {},
       completeSR: [],
       pendingSR: [],
-      shifts:[]
+      shifts: []
     };
   }
   ref = null;
   render() {
     const { rows, loading } = this.state;
+    const { classes } = this.props;
 
     return (
-      <Card>
+      <Card className={classes.root}>
         <CardContent>
           <input
             accept=".xlsx"
@@ -58,7 +59,7 @@ class UploadFiles extends React.Component {
             />
           </label>
 
-          {rows.length>0 && loading['process'] === false ? (
+          {rows.length > 0 && loading['process'] === false ? (
             <ReactTabulator
               ref={ref => (this.ref = ref)}
               columns={this.columns}
@@ -96,29 +97,33 @@ class UploadFiles extends React.Component {
   };
   constinueBuildReport = async () => {
     let { rows, rawData, shifts } = this.state;
-    let users = rows.filter(user=>user.sap_id!=='N/A');
+    let users = rows.filter(user => user.sap_id !== 'N/A');
     let days = rawData['days'];
     calc(users, shifts, days, true);
     this.setLoading('process', false);
   };
   //#region Fetch Shifts
   getCurrentUserShifts = () => {
-    let {pendingSR} = this.state;
+    let { pendingSR } = this.state;
     let { start, end, sampePeriod } = this.state.rawData.data;
     if (!sampePeriod) {
       this.state.rows.forEach(user => {
         if (user.sap_id !== 'N/A') {
-          this.getShifstsData(end.getFullYear(), end.getMonth()+1, user.sap_id);
-          pendingSR.push({ year: end.getFullYear(), month: end.getMonth()+1, user_id: user.sap_id });
+          this.getShifstsData(end.getFullYear(), end.getMonth() + 1, user.sap_id);
+          pendingSR.push({
+            year: end.getFullYear(),
+            month: end.getMonth() + 1,
+            user_id: user.sap_id
+          });
         }
       });
     }
     this.state.rows.forEach(user => {
       if (user.sap_id !== 'N/A') {
-        this.getShifstsData(start.getFullYear(), start.getMonth()+1, user.sap_id);
+        this.getShifstsData(start.getFullYear(), start.getMonth() + 1, user.sap_id);
         pendingSR.push({
           year: start.getFullYear(),
-          month: start.getMonth()+1,
+          month: start.getMonth() + 1,
           user_id: user.sap_id
         });
       }
@@ -145,8 +150,8 @@ class UploadFiles extends React.Component {
     if (document.data()) {
       let s = document.data().m;
       let user_shifts = [];
-      for(let day in s){
-        user_shifts.push({day:Number(day), year,month,user_id,code:s[day]})
+      for (let day in s) {
+        user_shifts.push({ day: Number(day), year, month, user_id, code: s[day] });
       }
       let { shifts } = this.state;
 
@@ -175,7 +180,11 @@ class UploadFiles extends React.Component {
     let { completeSR, pendingSR } = this.state;
     let complete = true;
     pendingSR.forEach(x => {
-      if (!completeSR.find(y => { return (y.year === x.year)&&(y.month === x.month)&&(y.user_id === x.user_id) })) {
+      if (
+        !completeSR.find(y => {
+          return y.year === x.year && y.month === x.month && y.user_id === x.user_id;
+        })
+      ) {
         complete = false;
       }
     });
@@ -203,7 +212,7 @@ class UploadFiles extends React.Component {
   };
   processData = async data => {
     let d = await process(data);
-    console.log(d)
+    console.log(d);
     this.getData();
     this.setState({ rawData: d });
   };
@@ -229,7 +238,9 @@ class UploadFiles extends React.Component {
       });
     }
 
-    this.setState({ rows },()=>{this.setLoading('upload', false);});
+    this.setState({ rows }, () => {
+      this.setLoading('upload', false);
+    });
   };
 
   getData = () => {
@@ -242,7 +253,7 @@ class UploadFiles extends React.Component {
       return snapshot.data();
     });
     const { users } = this.state;
-    
+
     return new Promise((resolve, reject) => {
       this.setState(
         {
@@ -335,6 +346,14 @@ class UploadFiles extends React.Component {
 }
 
 const styles = theme => ({
+  root: {
+    width: '700px',
+    align: 'center',
+    margin: '0 auto',
+    direction: 'ltr',
+    display: 'flex',
+    flexDirection: 'column'
+  },
   button: {
     margin: theme.spacing.unit
   },

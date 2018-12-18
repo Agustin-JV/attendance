@@ -133,6 +133,23 @@ export function arrayBuildComplexPattern( pattern) {
   console.log('CP', simplePattern)
   return simplePattern;
 }
+
+export function separateCamelCase(text, all = false) {
+  let m = text.match(/[A-Z]?[a-z]*/g);
+  if(all){
+    return capitalizeAll(m)
+  }
+  return capitalizeFirstLetter(m.join(' '));
+}
+function capitalizeAll(arr){
+  for(let x in arr){
+    arr[x] = capitalizeFirstLetter(arr[x])
+  }
+  return arr.join(' ')
+}
+export function capitalizeFirstLetter(string) {
+  return string.charAt(0).toUpperCase() + string.slice(1);
+}
 export function isEmpty(obj) {
   // null and undefined are "empty"
   if (obj === null) return true;

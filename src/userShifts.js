@@ -97,7 +97,7 @@ class UserShifts extends Component {
     let { showNS, showMS } = this.activateOptions();
     let save = Object.keys(pendingUpdate).length > 0;
     return (
-      <Card style={{ width: 1050 }}>
+      <Card className={classes.root}>
         {save || enableEdit ? (
           <CardContent
             style={{
@@ -882,6 +882,14 @@ class UserShifts extends Component {
 }
 
 const styles = theme => ({
+  root: {
+    width: 1050,
+    align:'center',
+    margin: '0 auto',
+    direction:'ltr',
+    display: 'flex',
+    flexDirection: 'column'
+  },
   button: {
     margin: theme.spacing.unit
   },

@@ -14,7 +14,7 @@ import { Badge, Button } from '@material-ui/core';
 import MenuIcon from '@material-ui/icons/Menu';
 import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
 import NotificationsIcon from '@material-ui/icons/Notifications';
-import { mainListItems, secondaryListItems } from './listItems';
+import { mainListItems, shitsListItems, appListItems, myAccountListItems } from './listItems';
 import { Route } from 'react-router-dom';
 import firebase from './fire_init';
 
@@ -53,8 +53,14 @@ class Layout extends React.Component {
         return 'Shift Reports 📊';
       case 'holidays':
         return 'Holidays 🏖️';
-      case 'security':
+      case 'app-security':
         return 'Security 🛡️';
+      case 'schedules-rules':
+        return '📅 Schedule Rules ⚙️';
+      case 'settings':
+        return 'Settings ⚙️';
+      case 'app-settings':
+        return '🏢 App Settings ⚙️';
       default:
         return path;
     }
@@ -125,7 +131,11 @@ class Layout extends React.Component {
           <Divider />
           <List>{mainListItems}</List>
           <Divider />
-          <List>{secondaryListItems}</List>
+          <List>{shitsListItems}</List>
+          <Divider />
+          <List>{appListItems}</List>
+          <Divider />
+          <List>{myAccountListItems}</List>
         </Drawer>
         <main className={classes.content}>
           <div className={classes.appBarSpacer} />
@@ -202,8 +212,8 @@ const styles = theme => ({
   content: {
     flexGrow: 1,
     padding: theme.spacing.unit * 3,
-    height: '100vh',
-    overflow: 'auto'
+    height: '100%',
+    overflow: 'auto',
   },
   chartContainer: {
     marginLeft: 22
