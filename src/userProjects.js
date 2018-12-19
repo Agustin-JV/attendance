@@ -443,7 +443,8 @@ class UserProjects extends React.Component {
 //#region consts
 const styles = theme => ({
   root: {
-    width: '850px',
+    width: '100%',
+    minWidth: '900px',
     align: 'center',
     margin: '0 auto',
     direction: 'ltr',
@@ -490,7 +491,8 @@ const columns = [
     field: 'sap_id',
     width: 100,
     headerFilter: 'input',
-    accessorClipboard: true
+    accessorClipboard: true,
+    headerSort:false
   },
   {
     title: 'Name',
@@ -504,14 +506,16 @@ const columns = [
     title: 'Project',
     field: 'project',
     width: 150,
-    accessorClipboard: true
+    accessorClipboard: true,
+    headerSort:false
   },
   {
     title: 'Project Code',
     field: 'project_code',
     align: 'left',
     width: 130,
-    accessorClipboard: true
+    accessorClipboard: true,
+    headerSort:false
   },
   {
     title: 'Client',
@@ -525,14 +529,16 @@ const columns = [
     field: 'rm_sap_id',
     align: 'center',
     width: 100,
-    accessorClipboard: true
+    accessorClipboard: true,
+    headerSort:false
   },
   {
     title: 'Badge ID',
     field: 'badge',
     align: 'center',
     width: 100,
-    accessorClipboard: true
+    accessorClipboard: true,
+    headerSort:false
   }
 ];
 //#endregion

@@ -227,7 +227,7 @@ class UserShifts extends Component {
       '4-34': 'string|undefined'
     });
     let batch = [];
-    console.log(pattern)
+    console.log(pattern);
     for (let x in data) {
       if (!isEmpty(data[x])) {
         let matchPattern = arrayMatchPattern(data[x], pattern);
@@ -244,7 +244,7 @@ class UserShifts extends Component {
         }
       }
     }
-    console.log(batch)
+    console.log(batch);
     if (batch.length > 0) {
       this.batchUpdate(batch);
     }
@@ -423,12 +423,8 @@ class UserShifts extends Component {
       });
     });
     // Commit the batch
-    batch.commit().then(
-      this.setLoading('save', false)
-      
-    );
+    batch.commit().then(this.setLoading('save', false));
   };
-
 
   /**
    * Gets the holidays that occur on a given time frame
@@ -692,7 +688,7 @@ class UserShifts extends Component {
    * @param {string | number} [sap_id]
    * @param {number} [year]
    * @param {number} [month]
-   * @param {Array<any>} [days]
+   * @param {Array<any>} [days] containst the code of shift for that day
    * @return {Array<any>} from generateEvent
    */
   groupSameAdjasentDays(sap_id, year, month, days) {
@@ -704,10 +700,21 @@ class UserShifts extends Component {
       } else {
         if (days[x] !== '' && days[x] !== null && days[x] !== undefined) {
           //console.log('day',x)
-          let start = moment(new Date(year, month - 1, prev !== -1 ? prev : x, 0, 0, 0)).format(
-            'Y-M-D HH:mm:ss'
-          );
-          let end = moment(new Date(year, month - 1, x, 23, 59, 59)).format('Y-M-D HH:mm:ss');
+          let tf = shiftsTimes[days[x]];
+
+          let start = moment(
+            new Date(
+              year,
+              month - 1,
+              prev !== -1 ? prev : x,
+              tf ? tf.start[0] : 0,
+              tf ? tf.start[1] : 0,
+              0
+            )
+          ).format('Y-M-D HH:mm:ss');
+          let end = moment(
+            new Date(year, month - 1, x, tf ? tf.end[0] : 23, tf ? tf.end[1] : 59, 59)
+          ).format('Y-M-D HH:mm:ss');
           output.push(this.generateEvent(sap_id, start, end, days[x]));
         }
         prev = -1;
@@ -880,13 +887,39 @@ class UserShifts extends Component {
   };
   //#endregion
 }
+const shiftsTimes = {
+  MS: {
+    start: [6, 0],
+    end: [13, 0]
+  },
+  S: {
+    start: [13, 0],
+    end: [21, 0]
+  },
+  N: {
+    start: [21, 0],
+    end: [6, 0]
+  },
+  NHS: {
+    start: [21, 0],
+    end: [6, 0]
+  },
+  HS: {
+    start: [13, 0],
+    end: [21, 0]
+  },
+  MHS: {
+    start: [6, 0],
+    end: [13, 0]
+  }
+};
 
 const styles = theme => ({
   root: {
     width: 1050,
-    align:'center',
+    align: 'center',
     margin: '0 auto',
-    direction:'ltr',
+    direction: 'ltr',
     display: 'flex',
     flexDirection: 'column'
   },

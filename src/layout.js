@@ -80,10 +80,9 @@ class Layout extends React.Component {
   render() {
     const { classes } = this.props;
     return (
-      <div className={classes.root}>
-        <CssBaseline />
+      <div style={{maxHeight:'100%', overflow:'hidden'}}>
         <AppBar
-          position="absolute"
+          position="fixed"
           className={classNames(classes.appBar, this.state.open && classes.appBarShift)}>
           <Toolbar disableGutters={!this.state.open} className={classes.toolbar}>
             <IconButton
@@ -117,6 +116,8 @@ class Layout extends React.Component {
             <Button onClick={this.onLogOut}>Log Out</Button>
           </Toolbar>
         </AppBar>
+      <div className={classes.root}>
+        <CssBaseline />
         <Drawer
           variant="permanent"
           classes={{
@@ -129,6 +130,7 @@ class Layout extends React.Component {
             </IconButton>
           </div>
           <Divider />
+          <div style={{overflowX:'hidden',overflowY:'auto'}}>
           <List>{mainListItems}</List>
           <Divider />
           <List>{shitsListItems}</List>
@@ -136,11 +138,15 @@ class Layout extends React.Component {
           <List>{appListItems}</List>
           <Divider />
           <List>{myAccountListItems}</List>
+          </div>
         </Drawer>
-        <main className={classes.content}>
+        <div className={classes.content}>
           <div className={classes.appBarSpacer} />
+        <main className={classes.content2}>
           {this.props.children}
         </main>
+        </div>
+      </div>
       </div>
     );
   }
@@ -151,7 +157,9 @@ Layout.propTypes = {
 const drawerWidth = 240;
 const styles = theme => ({
   root: {
-    display: 'flex'
+    display: 'flex',
+    height: '-webkit-fill-available',
+    overflow:'hidden'
   },
   toolbar: {
     paddingRight: 24 // keep right padding when drawer closed
@@ -195,7 +203,8 @@ const styles = theme => ({
     transition: theme.transitions.create('width', {
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.enteringScreen
-    })
+    }),
+    height: '100%',
   },
   drawerPaperClose: {
     overflowX: 'hidden',
@@ -203,23 +212,26 @@ const styles = theme => ({
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.leavingScreen
     }),
+    minWidth:71,
     width: theme.spacing.unit * 7,
     [theme.breakpoints.up('sm')]: {
       width: theme.spacing.unit * 9
-    }
+    },
+    height: '100%',
   },
   appBarSpacer: theme.mixins.toolbar,
   content: {
     flexGrow: 1,
-    padding: theme.spacing.unit * 3,
-    height: '100%',
     overflow: 'auto',
+  },
+  content2: {
+    padding: theme.spacing.unit * 3,
+    height: 'auto',
+    minWidth:'100%',
+    width:'fit-content'
   },
   chartContainer: {
     marginLeft: 22
-  },
-  tableContainer: {
-    height: 320
   },
   h5: {
     marginBottom: theme.spacing.unit * 2

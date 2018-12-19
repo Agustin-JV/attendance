@@ -214,25 +214,21 @@ class ScheduleRules extends React.Component {
     currency: 'The currency on which the payment will be done'
   });
   currencySelect = id => {
-
     const { classes } = this.props;
     const { readOnly } = this.state;
     return (
       <Tooltip title={this.tooltips()[id]}>
-
         <TextField
           select
           label={separateCamelCase(id, true)}
           value={this.state[id]}
           type="number"
           required={true}
-
           className={classes.textFieldSmall}
           margin="normal"
           onChange={this.onInputChange(id)}
           InputLabelProps={{ shrink: true }}
           InputProps={{
-
             readOnly: readOnly,
             inputProps: {
               form: 'schedule-rules-form'
@@ -250,7 +246,6 @@ class ScheduleRules extends React.Component {
     );
   };
   numberField = (id, adorment, startAdornment, max = 9999999999) => {
-
     const { classes } = this.props;
     const { readOnly } = this.state;
     return (
@@ -277,7 +272,6 @@ class ScheduleRules extends React.Component {
               min: 0,
               max: max
             }
-
           }}
         />
       </Tooltip>
@@ -310,7 +304,6 @@ class ScheduleRules extends React.Component {
   };
 }
 
-
 const ExpansionBlock = props => (
   <ExpansionPanel style={{ backgroundColor: '#fff' }}>
     <ExpansionPanelSummary expandIcon={<ExpandMore />}>
@@ -324,10 +317,10 @@ const ExpansionBlock = props => (
 const styles = theme => ({
   root: {
     width: 530,
-    align:'center',
+    align: 'center',
     backgroundColor: '#eee',
     margin: '0 auto',
-    direction:'ltr',
+    direction: 'ltr',
     display: 'flex',
     flexDirection: 'column'
   },
@@ -348,7 +341,6 @@ const styles = theme => ({
     marginLeft: theme.spacing.unit,
     marginRight: theme.spacing.unit,
     width: 120
-
   },
   actions: {
     display: 'flex',
