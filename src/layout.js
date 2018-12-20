@@ -12,8 +12,10 @@ import Divider from '@material-ui/core/Divider';
 import IconButton from '@material-ui/core/IconButton';
 import { Badge, Button } from '@material-ui/core';
 import MenuIcon from '@material-ui/icons/Menu';
+import { MoreVert } from '@material-ui/icons';
 import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
 import NotificationsIcon from '@material-ui/icons/Notifications';
+import { Menu, MenuItem } from '@material-ui/core';
 import { mainListItems, shitsListItems, appListItems, myAccountListItems } from './listItems';
 import { Route } from 'react-router-dom';
 import firebase from './fire_init';
@@ -23,7 +25,8 @@ class Layout extends React.Component {
     super(props);
     this.state = {
       open: false,
-      title: 'Home'
+      title: 'Home',
+      anchorEl: null
     };
     //this.onDelayChange = this.onDelayChange.bind(this)
   }
@@ -66,6 +69,7 @@ class Layout extends React.Component {
     }
   };
   onLogOut = () => {
+    this.handleCloseUserMenu();
     firebase
       .auth()
       .signOut()
@@ -77,10 +81,17 @@ class Layout extends React.Component {
     //console.log('Signed Out', firebase.auth().currentUser ? true : false);
     this.props.auth();
   };
+  handleCloseUserMenu = () => {
+    this.setState({ anchorEl: null });
+  };
+  handleClickUserMenu = event => {
+    this.setState({ anchorEl: event.currentTarget });
+  };
   render() {
+    const { anchorEl } = this.state;
     const { classes } = this.props;
     return (
-      <div style={{maxHeight:'100%', overflow:'hidden'}}>
+      <div style={{ maxHeight: '100%', overflow: 'hidden' }}>
         <AppBar
           position="fixed"
           className={classNames(classes.appBar, this.state.open && classes.appBarShift)}>
@@ -109,44 +120,55 @@ class Layout extends React.Component {
               )}
             />
             <IconButton color="inherit">
-              <Badge badgeContent={4} color="secondary">
+              <Badge badgeContent={1} invisible={true} color="secondary">
                 <NotificationsIcon />
               </Badge>
             </IconButton>
-            <Button onClick={this.onLogOut}>Log Out</Button>
+            <Menu
+              id="simple-menu"
+              anchorEl={anchorEl}
+              open={Boolean(anchorEl)}
+              onClose={this.handleCloseUserMenu}>
+              <MenuItem onClick={this.handleCloseUserMenu}>Profile {'<comming soon>'}</MenuItem>
+              <MenuItem onClick={this.handleCloseUserMenu}>My account {'<comming soon>'}</MenuItem>
+              <MenuItem onClick={this.onLogOut}>Logout</MenuItem>
+            </Menu>
+            <IconButton color="inherit" onClick={this.handleClickUserMenu}>
+              <MoreVert />
+            </IconButton>
           </Toolbar>
         </AppBar>
-      <div className={classes.root}>
-        <CssBaseline />
-        <Drawer
-          variant="permanent"
-          classes={{
-            paper: classNames(classes.drawerPaper, !this.state.open && classes.drawerPaperClose)
-          }}
-          open={this.state.open}>
-          <div className={classes.toolbarIcon}>
-            <IconButton onClick={this.handleDrawerClose}>
-              <ChevronLeftIcon />
-            </IconButton>
+        <div className={classes.root}>
+          <CssBaseline />
+          <Drawer
+            variant="permanent"
+            classes={{
+              paper: classNames(classes.drawerPaper, !this.state.open && classes.drawerPaperClose)
+            }}
+            open={this.state.open}>
+            <div className={classes.toolbarIcon}>
+              <IconButton onClick={this.handleDrawerClose}>
+                <ChevronLeftIcon />
+              </IconButton>
+            </div>
+            <Divider />
+            <div className={classes.drawer}>
+              <List>{mainListItems}</List>
+              <Divider />
+              <List>{shitsListItems}</List>
+              <Divider />
+              <List>{appListItems}</List>
+              <Divider />
+              <List>{myAccountListItems}</List>
+            </div>
+          </Drawer>
+          <div className={classes.content}>
+            <div className={classes.appBarSpacer} />
+            <div className={classes.content2}>
+              <main className={classes.content3}>{this.props.children}</main>
+            </div>
           </div>
-          <Divider />
-          <div style={{overflowX:'hidden',overflowY:'auto'}}>
-          <List>{mainListItems}</List>
-          <Divider />
-          <List>{shitsListItems}</List>
-          <Divider />
-          <List>{appListItems}</List>
-          <Divider />
-          <List>{myAccountListItems}</List>
-          </div>
-        </Drawer>
-        <div className={classes.content}>
-          <div className={classes.appBarSpacer} />
-        <main className={classes.content2}>
-          {this.props.children}
-        </main>
         </div>
-      </div>
       </div>
     );
   }
@@ -159,7 +181,7 @@ const styles = theme => ({
   root: {
     display: 'flex',
     height: '-webkit-fill-available',
-    overflow:'hidden'
+    overflow: 'hidden'
   },
   toolbar: {
     paddingRight: 24 // keep right padding when drawer closed
@@ -196,6 +218,17 @@ const styles = theme => ({
   title: {
     flexGrow: 1
   },
+  drawer: {
+    overflow: 'hidden',
+    '&:hover': {
+      overflowY: 'auto',
+      overflowX: 'hidden',
+      '&::-webkit-scrollbar': {
+        width: '5px',
+        height: '5px'
+      }
+    }
+  },
   drawerPaper: {
     position: 'relative',
     whiteSpace: 'nowrap',
@@ -204,7 +237,7 @@ const styles = theme => ({
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.enteringScreen
     }),
-    height: '100%',
+    height: '100%'
   },
   drawerPaperClose: {
     overflowX: 'hidden',
@@ -212,23 +245,29 @@ const styles = theme => ({
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.leavingScreen
     }),
-    minWidth:71,
+    minWidth: 71,
     width: theme.spacing.unit * 7,
     [theme.breakpoints.up('sm')]: {
       width: theme.spacing.unit * 9
     },
-    height: '100%',
+    height: '100%'
   },
   appBarSpacer: theme.mixins.toolbar,
   content: {
     flexGrow: 1,
-    overflow: 'auto',
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column'
   },
   content2: {
+    height: '-webkit-fill-available',
+    overflow: 'auto'
+  },
+  content3: {
     padding: theme.spacing.unit * 3,
     height: 'auto',
-    minWidth:'100%',
-    width:'fit-content'
+    minWidth: '100%',
+    width: 'fit-content'
   },
   chartContainer: {
     marginLeft: 22
