@@ -6,21 +6,14 @@ import NewUserTableForm from './newUserTableForm';
 import { db } from './fire_init';
 import { Card, CardContent, CardActions } from '@material-ui/core';
 import { withStyles } from '@material-ui/core/styles';
-import {
-  Save,
-  Edit,
-  Delete,
-  OpenInBrowser,
-  PersonAdd,
-  LineStyle,
-  PowerInput,
-  Forward
-} from '@material-ui/icons';
+import { Save, Edit, Delete, PersonAdd } from '@material-ui/icons';
+import { OpenInBrowser, LineStyle, PowerInput, Forward, BorderColor } from '@material-ui/icons';
 import { mergeArrays, isEmpty, arrayMatchPattern } from './utils';
 import Pagination from './pagination';
 import AvChip from './avatarChip';
 import { getData, getMoreData } from './fbGetPaginatedData';
 import { handleFile, XLSX } from './loadXlsx';
+import { Link } from 'react-router-dom';
 //#endregion
 
 /**
@@ -159,15 +152,16 @@ class UserProjects extends React.Component {
             hide={this.state.edit}
             clickable={true}
           />
-          <AvChip
-            cAr={['indigo', 400, 600]}
-            avatar={<PersonAdd />}
-            onClick={this.openForm}
-            label="Add"
-            variant="outlined"
-            hide={!this.state.edit}
-            clickable={true}
-          />
+          <Link to={'projects/user/' + this.getSelectedUser()}>
+            <AvChip
+              cAr={['indigo', 400, 600]}
+              avatar={this.state.selectedRows.length === 1 ? <BorderColor /> : <PersonAdd />}
+              label={this.state.selectedRows.length === 1 ? 'Edit' : 'Add'}
+              variant="outlined"
+              hide={!this.state.edit}
+              clickable={true}
+            />
+          </Link>
           <AvChip
             cAr={this.state.selectedRows.length > 0 ? ['indigo', 400, 700] : ['grey', 500, 700]}
             avatar={<Delete />}
@@ -216,10 +210,10 @@ class UserProjects extends React.Component {
             />
           </label>
         </CardActions>
-        <NewUserTableForm open={this.state.open} newRow={this.newRow} onClose={this.handleClose} />
       </Card>
     );
   }
+        //<NewUserTableForm open={this.state.open} newRow={this.newRow} onClose={this.handleClose} />
 
   //#region UploadFile
   loadFile = e => {
@@ -274,7 +268,15 @@ class UserProjects extends React.Component {
     this.setLoading('upload', false);
   };
   //#endregion
-
+  getSelectedUser() {
+    let { selectedRows } = this.state;
+    if (this.state.selectedRows.length === 1)
+      for (let x in selectedRows) {
+        let sap_id = selectedRows[x].getData().sap_id;
+        return String(sap_id);
+      }
+    return 'new';
+  }
   setLoading(key, value) {
     let { loading } = this.state;
     loading[key] = value;
@@ -303,6 +305,8 @@ class UserProjects extends React.Component {
     return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
   }
   openForm = () => {
+    if (this.state.selectedRows.length === 1) {
+    }
     this.setState({ open: true });
   };
   delete = () => {
@@ -492,7 +496,7 @@ const columns = [
     width: 100,
     headerFilter: 'input',
     accessorClipboard: true,
-    headerSort:false
+    headerSort: false
   },
   {
     title: 'Name',
@@ -507,7 +511,7 @@ const columns = [
     field: 'project',
     width: 150,
     accessorClipboard: true,
-    headerSort:false
+    headerSort: false
   },
   {
     title: 'Project Code',
@@ -515,7 +519,7 @@ const columns = [
     align: 'left',
     width: 130,
     accessorClipboard: true,
-    headerSort:false
+    headerSort: false
   },
   {
     title: 'Client',
@@ -530,7 +534,7 @@ const columns = [
     align: 'center',
     width: 100,
     accessorClipboard: true,
-    headerSort:false
+    headerSort: false
   },
   {
     title: 'Badge ID',
@@ -538,7 +542,7 @@ const columns = [
     align: 'center',
     width: 100,
     accessorClipboard: true,
-    headerSort:false
+    headerSort: false
   }
 ];
 //#endregion

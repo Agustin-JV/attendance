@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Route, Redirect } from 'react-router-dom';
 import InApp from './inapp';
 import Home from './home';
 import firebase from './fire_init';
-
+import { SnackbarProvider } from 'notistack';
 class AppRouter extends React.Component {
   constructor(props) {
     super(props);
@@ -19,6 +19,7 @@ class AppRouter extends React.Component {
   };
   render() {
     return (
+      <SnackbarProvider maxSnack={3}>
       <Router>
         <div style={{height:'100%'}}>
           <Route
@@ -36,6 +37,7 @@ class AppRouter extends React.Component {
           <Route exact path="/:id" render={() => <InApp auth={this.revalidate} />} />
         </div>
       </Router>
+      </SnackbarProvider>
     );
   }
 }

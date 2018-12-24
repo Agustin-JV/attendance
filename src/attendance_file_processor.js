@@ -311,7 +311,6 @@ function fillDates(days) {
 }
 
 async function attendance(attendance, fileData) {
-  //var t0 = performance.now();
   let usersOut = [];
   let dayOut = [];
   let pad = attendance.departments;
@@ -325,12 +324,9 @@ async function attendance(attendance, fileData) {
       };
       let userResponce = 0;
 
-      //userResponce = await addUpdate(user, user.name, tableStructures.attendance.object_stores.users, 'name', 'user_id');
-
       userResponce = user.badge;
 
       usersOut.push(user);
-      //delete showProgress('Reading User #' + userResponce);
 
       // --------------------------------DAYS--------------------------------
       for (let y in pad[d].users[x].days) {
@@ -378,9 +374,6 @@ async function attendance(attendance, fileData) {
               }
             }
           }
-          //delete showProgress(
-          //delete  'Processing User #' + userResponce + ' day:' + x + ' processing entry #' + z
-          //delete );
         }
         let dbT = msToTime(timeIn * 86400000);
         let time_inTest = new Date(timeIn * 86400000);
@@ -429,26 +422,13 @@ async function attendance(attendance, fileData) {
           on_time: shift.onTime,
           week_number: weekDate.getWeek()
         };
-        //delete showProgress('Processing User #' + userResponce + ' day:' + y);
-        /*if (detectIE() === false){
-          let dayResponce = await addUpdate(
-            day,
-            [day.year, day.month, day.day, day.user_id],
-            tableStructures.attendance.object_stores.days,
-            'date_user',
-            'id'
-          );
-        }*/
-        //change day.user_id to usersOut.length for explorer
+
         dayOut.push(day);
       }
     }
   }
-  //let t1 = performance.now();
-  //delete enableLoading(false);
 
   return { users: usersOut, days: dayOut,  data:fileData  };
-  //alert('Attendance local upload process done in: '+((t1-t0)/1000)+' sec');
 }
 
 /**

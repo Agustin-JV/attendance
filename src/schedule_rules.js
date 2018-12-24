@@ -2,17 +2,17 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { withStyles } from '@material-ui/core/styles';
-
 import { Tooltip, TextField, Typography, InputAdornment, MenuItem } from '@material-ui/core';
-import { ExpansionPanel, ExpansionPanelSummary, CircularProgress } from '@material-ui/core';
-import { Save, Edit, ExpandMore } from '@material-ui/icons';
-import { CardHeader, CardActions, Card, Divider } from '@material-ui/core';
+import { CircularProgress } from '@material-ui/core';
+import { Save, Edit } from '@material-ui/icons';
+import { CardHeader, CardActions, Card } from '@material-ui/core';
 import moment from 'moment';
 import { separateCamelCase } from './utils';
 import AvChip from './avatarChip';
 import { db } from './fire_init';
 import { getDocument } from './fbGetPaginatedData';
-
+import ExpansionBlock from './expansionBlock';
+import {  withSnackbar } from 'notistack';
 class ScheduleRules extends React.Component {
   constructor(props) {
     super(props);
@@ -29,7 +29,13 @@ class ScheduleRules extends React.Component {
       readOnly: true,
       edit: false,
       pendingUpdate: false,
-      loading: { load: false, upload: false, save: false }
+      loading: { load: false, upload: false, save: false },
+      night_start: '00:00',
+      night_end: '00:00',
+      normal_start: '00:00',
+      normal_end: '00:00',
+      morning_start: '00:00',
+      morning_end: '00:00'
     };
   }
   componentDidMount() {
@@ -50,7 +56,13 @@ class ScheduleRules extends React.Component {
       weekend_bonus,
       night_bonus,
       delay_discount,
-      shift_lenght
+      shift_lenght,
+      night_start,
+      night_end,
+      normal_start,
+      normal_end,
+      morning_start,
+      morning_end
     } = document.data();
 
     return new Promise(resolve => {
@@ -64,7 +76,13 @@ class ScheduleRules extends React.Component {
           weekend_bonus,
           night_bonus,
           delay_discount,
-          shift_lenght
+          shift_lenght,
+          night_start,
+          night_end,
+          normal_start,
+          normal_end,
+          morning_start,
+          morning_end
         },
         () => {
           this.setLoading('load', false);
@@ -85,7 +103,7 @@ class ScheduleRules extends React.Component {
           </div>
         ) : (
           <div>
-            <form id="schedule-rules-form" onSubmit={this.save}>
+            <form style={{ textAlign: 'left' }} id="schedule-rules-form" onSubmit={this.save}>
               <ExpansionBlock title="Time Range">
                 {this.timeField('shift_lenght')}
                 {this.timeField('tolerance')}
@@ -102,6 +120,24 @@ class ScheduleRules extends React.Component {
               <ExpansionBlock title="Other">
                 {this.numberField('delay_discount', '%', null, 100)}
                 {this.currencySelect('currency')}
+              </ExpansionBlock>
+              <ExpansionBlock title="Shifts" clean>
+                <ExpansionBlock title="Morning Shift" variant="subtitle2" color="#defdfb">
+                  {this.composeTimeField('morning_start')}
+                  {this.composeTimeField('morning_end')}
+                </ExpansionBlock>
+                <ExpansionBlock title="Noraml Shift" variant="subtitle2" color="#6584d8">
+                  {this.composeTimeField('normal_start')}
+                  {this.composeTimeField('normal_end')}
+                </ExpansionBlock>
+                <ExpansionBlock
+                  title="Night Shift"
+                  textColor="ivory"
+                  variant="subtitle2"
+                  color="#632b6c">
+                  {this.composeTimeField('night_start', 'ivory')}
+                  {this.composeTimeField('night_end', 'ivory')}
+                </ExpansionBlock>
               </ExpansionBlock>
               <input style={{ display: 'none' }} id="contained-button-submit" type="submit" />
             </form>
@@ -152,7 +188,13 @@ class ScheduleRules extends React.Component {
       weekend_bonus,
       night_bonus,
       delay_discount,
-      shift_lenght
+      shift_lenght,
+      night_start,
+      night_end,
+      normal_start,
+      normal_end,
+      morning_start,
+      morning_end
     } = this.state;
     this.setLoading('save', true);
     this.setState({ pendingUpdate: false });
@@ -167,7 +209,13 @@ class ScheduleRules extends React.Component {
         weekend_bonus,
         night_bonus,
         delay_discount,
-        shift_lenght
+        shift_lenght,
+        night_start,
+        night_end,
+        normal_start,
+        normal_end,
+        morning_start,
+        morning_end
       })
       .then(this.setLoading('save', false))
       .catch(this.dintSave);
@@ -182,6 +230,8 @@ class ScheduleRules extends React.Component {
 
   edit = () => {
     this.setState({ readOnly: !this.state.readOnly });
+    //https://stackoverflow.com/questions/53420736/how-to-make-material-ui-snackbar-not-take-up-the-whole-screen-width-using-anchor
+    this.props.enqueueSnackbar('I love snacks2', {ContentProps:{style: { width:'250px'}}});
   };
   onInputChange = id => event => {
     this.setState({
@@ -211,8 +261,58 @@ class ScheduleRules extends React.Component {
       ' inside the working area on a shift nacc form saturday to sunday',
     holiday_bonus: 'The extra payment by law for working on a holiday',
     sunday_bonus: 'The extra payment by law for working on a sunday',
-    currency: 'The currency on which the payment will be done'
+    currency: 'The currency on which the payment will be done',
+    night_start: 'The start time of the night shift, time goes on 24 hour format',
+    night_end: 'The end time of the night shift, time goes on 24 hour format',
+    normal_start: 'The start time of the normal shift, time goes on 24 hour format',
+    normal_end: 'The end time of the normal shift, time goes on 24 hour format',
+    morning_start: 'The start time of the morning shift, time goes on 24 hour format',
+    morning_end: 'The end time of the morning shift, time goes on 24 hour format'
   });
+  composeTimeField = (id, textColor) => {
+    const { classes } = this.props;
+    const { readOnly } = this.state;
+    return (
+      <Tooltip title={this.tooltips()[id]}>
+        <TextField
+          style={{ color: textColor ? textColor : 'default', width: 130 }}
+          required
+          id={id}
+          label={separateCamelCase(id, true)}
+          name={separateCamelCase(id, true)}
+          onChange={this.onInputChange(id)}
+          className={classes.textFieldSmall}
+          value={this.state[id]}
+          margin="normal"
+          type="time"
+          InputLabelProps={{ shrink: true, style: { color: textColor ? textColor : 'default' } }}
+          InputProps={{
+            readOnly: readOnly,
+            classes: {
+              underline: textColor ? classes.underline : classes.underlinef
+            },
+            style: {
+              color: textColor ? textColor : 'default'
+            },
+            endAdornment: (
+              <InputAdornment position="end">
+                <Typography
+                  variant="body2"
+                  color="inherit"
+                  style={{ color: textColor ? textColor : 'default' }}>
+                  hh:mm
+                </Typography>
+              </InputAdornment>
+            ),
+            inputProps: {
+              style: { color: textColor ? textColor : 'default' },
+              form: 'schedule-rules-form'
+            }
+          }}
+        />
+      </Tooltip>
+    );
+  };
   currencySelect = id => {
     const { classes } = this.props;
     const { readOnly } = this.state;
@@ -304,16 +404,6 @@ class ScheduleRules extends React.Component {
   };
 }
 
-const ExpansionBlock = props => (
-  <ExpansionPanel style={{ backgroundColor: '#fff' }}>
-    <ExpansionPanelSummary expandIcon={<ExpandMore />}>
-      <Typography variant="subtitle1">{props.title}</Typography>
-    </ExpansionPanelSummary>
-    <Divider />
-    {props.children}
-  </ExpansionPanel>
-);
-
 const styles = theme => ({
   root: {
     width: 530,
@@ -323,6 +413,20 @@ const styles = theme => ({
     direction: 'ltr',
     display: 'flex',
     flexDirection: 'column'
+  },
+  underline: {
+    '&:after': {
+      borderBottom: `2px solid wheat`
+    },
+    '&:before': {
+      borderBottom: `1px solid ivory`
+    },
+    '&:hover': {
+      borderBottom: `1px solid ivory`
+    },
+    '&:hover:before': {
+      borderBottom: `1px solid lightgoldenrodyellow !important`
+    }
   },
   table: {
     minWidth: 470
@@ -348,4 +452,4 @@ const styles = theme => ({
   }
 });
 
-export default withStyles(styles)(ScheduleRules);
+export default withSnackbar(withStyles(styles)(ScheduleRules));

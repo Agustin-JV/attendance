@@ -11,6 +11,7 @@
     "firebase": "5.5.8",
     "js-file-download": "0.4.4",
     "moment": "2.22.2",
+    "notistack": "0.4.1",
     "react": "16.5.2",
     "react-big-calendar": "0.20.2",
     "react-big-scheduler": "0.2.2",
