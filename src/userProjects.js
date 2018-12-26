@@ -160,6 +160,7 @@ class UserProjects extends React.Component {
               variant="outlined"
               hide={!this.state.edit}
               clickable={true}
+              onClick={this.cleanSelected}
             />
           </Link>
           <AvChip
@@ -213,8 +214,10 @@ class UserProjects extends React.Component {
       </Card>
     );
   }
-        //<NewUserTableForm open={this.state.open} newRow={this.newRow} onClose={this.handleClose} />
-
+  //<NewUserTableForm open={this.state.open} newRow={this.newRow} onClose={this.handleClose} />
+  cleanSelected = () => {
+    this.setState({ selectedRows: [] });
+  };
   //#region UploadFile
   loadFile = e => {
     this.setLoading('upload', true);
@@ -295,7 +298,7 @@ class UserProjects extends React.Component {
     });
   };
   edit = () => {
-    this.setState({ edit: !this.state.edit }, () => {
+    this.setState({ edit: !this.state.edit, selectedRows: [] }, () => {
       this.udaptePage();
     });
   };

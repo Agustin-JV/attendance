@@ -13,6 +13,7 @@ import { handleFile, XLSX } from './loadXlsx';
 import { db } from './fire_init';
 import { mergeArrays, isAny, isEmpty, arrayMatchPatterns } from './utils';
 import { getDocument } from './fbGetPaginatedData';
+import { withSnackbar } from 'notistack';
 //#endregion
 
 //#region TS annotations
@@ -241,6 +242,7 @@ class HolydayPlanner extends React.Component {
       this.processData(data);
     } else {
       this.setLoading('upload', false);
+      this.props.enqueueSnackbar('File Upload Canceled',{  variant: 'warning'});
     }
   };
   processData = data => {
@@ -265,6 +267,7 @@ class HolydayPlanner extends React.Component {
       }
     }
     this.setLoading('upload', false);
+    this.props.enqueueSnackbar('File Upload Complete',{  variant: 'success'});
   };
   onInputChange = name => event => {
     this.setState({
@@ -445,11 +448,20 @@ class HolydayPlanner extends React.Component {
       });
 
       // Commit the batch
-      batch.commit().then(this.saveSuccess);
+      batch.commit().then(this.saveSuccess).catch(this.dintSave(pendingUpdate));
     }
+  };
+  dintSave =(pendingUpdate)=> error => {
+    alert('There was an error while trying to save, please try again in a few seconds');
+    console.error('Error writing document: ', error);
+    let { loading } = this.state;
+    loading['save'] = false;
+    this.props.enqueueSnackbar('Error while save saving try again in a few seconds',{  variant: 'error'});
+    this.setState({ pendingUpdate: pendingUpdate, loading });
   };
   saveSuccess = () => {
     this.setLoading('save', false);
+    this.props.enqueueSnackbar('Save Complete',{  variant: 'success'});
     //console.log('succesfull save');
   };
   /**
@@ -481,6 +493,7 @@ class HolydayPlanner extends React.Component {
         () => {
           this.buildEventHolidays();
           this.setLoading('load', false);
+          this.props.enqueueSnackbar('Load Complete',{  variant: 'success'});
           resolve();
         }
       );
@@ -552,4 +565,4 @@ const holidayType = {
     shade: 300
   }
 };
-export default withStyles(styles)(HolydayPlanner);
+export default withSnackbar(withStyles(styles)(HolydayPlanner));

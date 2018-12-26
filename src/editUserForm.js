@@ -13,7 +13,7 @@ import {
   Paper,
   Divider,
   InputAdornment,
-  Slide 
+  Slide
 } from '@material-ui/core';
 import ExpansionBlock from './expansionBlock';
 import { withStyles } from '@material-ui/core/styles';
@@ -37,7 +37,7 @@ class EditUserForm extends React.Component {
     this.setState({ loading });
   }
   componentDidMount() {
-    console.log(this.props.match.params.id)
+    console.log(this.props.match.params.id);
     this.setLoading('load', true);
     getDocument('settings', 'schedule', this.processScheduleSettingsQuery);
   }
@@ -59,18 +59,24 @@ class EditUserForm extends React.Component {
     return new Promise(resolve => {
       this.setState(
         {
+          night_start,
+          night_end,
+          normal_start,
+          normal_end,
+          morning_start,
+          morning_end,
           default_night_start: night_start,
           default_night_end: night_end,
           default_normal_start: normal_start,
           default_normal_end: normal_end,
           default_morning_start: morning_start,
-          default_morning_end: morning_end
+          default_morning_end: morning_end,
+          open: true
         },
         () => {
-          if(this.props.match.params.id !== 'new')
+          if (this.props.match.params.id !== 'new')
             getDocument('users', this.props.match.params.id, this.processUserQuery);
-          else
-            this.displayShiftSettingsStatus();
+          else this.displayShiftSettingsStatus();
           resolve();
         }
       );
@@ -123,12 +129,12 @@ class EditUserForm extends React.Component {
           normal_start: normal_start ? normal_start : default_normal_start,
           normal_end: normal_end ? normal_end : default_normal_end,
           morning_start: morning_start ? morning_start : default_morning_start,
-          morning_end: morning_end ? morning_end : default_morning_end,  
+          morning_end: morning_end ? morning_end : default_morning_end
         },
         () => {
           this.setLoading('load', false);
           this.displayShiftSettingsStatus();
-          
+
           resolve();
         }
       );
@@ -144,8 +150,7 @@ class EditUserForm extends React.Component {
     this.setState({
       default_night,
       default_normal,
-      default_morning,
-      open: true,
+      default_morning
     });
   };
   /** target and value are needed to update make the calck with the new
@@ -157,8 +162,8 @@ class EditUserForm extends React.Component {
     return this.state[id] === this.state['default_' + id];
   };
   handleClose = () => {
-    this.setState({open:false})
-    setTimeout(this.props.history.goBack, 250)
+    this.setState({ open: false });
+    setTimeout(this.props.history.goBack, 250);
   };
   onSubmit = event => {
     event.preventDefault();
@@ -213,19 +218,25 @@ class EditUserForm extends React.Component {
       ['default_' + id]: true
     });
   };
-  
+
   render() {
     const { classes } = this.props;
     const { default_night, default_normal, default_morning } = this.state;
     return (
-      <Dialog fullScreen open={this.state.open} onClose={this.handleClose} TransitionComponent={Transition}>
+      <Dialog
+        fullScreen
+        open={this.state.open}
+        onClose={this.handleClose}
+        TransitionComponent={Transition}>
         <AppBar className={classes.appBar}>
           <Toolbar>
             <IconButton color="inherit" onClick={this.handleClose} aria-label="Close">
               <Close />
             </IconButton>
             <Typography variant="h6" color="inherit" className={classes.flex}>
-            {this.props.match.params.id==='new'?'Edit New User':'Edit User '+this.props.match.params.id}
+              {this.props.match.params.id === 'new'
+                ? 'Edit New User'
+                : 'Edit User ' + this.props.match.params.id}
             </Typography>
             <IconButton color="inherit" type="submit" form="edit-user-form" aria-label="Save">
               <Save />
@@ -238,7 +249,7 @@ class EditUserForm extends React.Component {
           autoComplete="off"
           onSubmit={this.save}>
           <ExpansionBlock title="Acount Details">
-            {this.composeField('email', 'email')}
+            {this.composeField('email', 'email', false)}
           </ExpansionBlock>
           <ExpansionBlock title="User Details">
             {this.composeField('sap_id', 'number')}
@@ -324,13 +335,12 @@ class EditUserForm extends React.Component {
     morning_start: 'The start time of the morning shift, time goes on 24 hour format',
     morning_end: 'The end time of the morning shift, time goes on 24 hour format'
   });
-  composeField = (id, type, textColor) => {
+  composeField = (id, type, required = true) => {
     const { classes } = this.props;
     return (
       <Tooltip title={this.tooltips()[id]}>
         <TextValidator
-          style={{ color: textColor ? textColor : 'default' }}
-          required
+          required={required}
           id={id}
           label={separateCamelCase(id, true)}
           name={separateCamelCase(id, true)}
@@ -344,7 +354,7 @@ class EditUserForm extends React.Component {
           InputLabelProps={{ shrink: true }}
           InputProps={{
             readOnly: this.idEditable(id)
-            }}
+          }}
         />
       </Tooltip>
     );
@@ -392,10 +402,10 @@ class EditUserForm extends React.Component {
       </Tooltip>
     );
   };
-  idEditable=(id)=>{
-    let editable = id==='sap_id'&&this.props.match.params.id!=='new'
-    return editable
-  }
+  idEditable = id => {
+    let editable = id === 'sap_id' && this.props.match.params.id !== 'new';
+    return editable;
+  };
   save = event => {
     event.preventDefault();
     console.log('Save some data');

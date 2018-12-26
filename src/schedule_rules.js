@@ -86,6 +86,7 @@ class ScheduleRules extends React.Component {
         },
         () => {
           this.setLoading('load', false);
+          this.props.enqueueSnackbar('Loading Complete',{  variant: 'success'});
           resolve();
         }
       );
@@ -217,21 +218,24 @@ class ScheduleRules extends React.Component {
         morning_start,
         morning_end
       })
-      .then(this.setLoading('save', false))
+      .then(this.didSave)
       .catch(this.dintSave);
   };
+  didSave = ()=>{
+    this.setLoading('save', false)
+    this.props.enqueueSnackbar('Save Complete',{  variant: 'success'});
+  }
   dintSave = error => {
     alert('There was an error while trying to save, please try again in a few seconds');
     console.error('Error writing document: ', error);
     let { loading } = this.state;
     loading['save'] = false;
+    this.props.enqueueSnackbar('Error while save saving try again in a few seconds',{  variant: 'error'});
     this.setState({ pendingUpdate: true, loading });
   };
 
   edit = () => {
     this.setState({ readOnly: !this.state.readOnly });
-    //https://stackoverflow.com/questions/53420736/how-to-make-material-ui-snackbar-not-take-up-the-whole-screen-width-using-anchor
-    this.props.enqueueSnackbar('I love snacks2', {ContentProps:{style: { width:'250px'}}});
   };
   onInputChange = id => event => {
     this.setState({
@@ -414,6 +418,14 @@ const styles = theme => ({
     display: 'flex',
     flexDirection: 'column'
   },
+  snakbar: {
+        color: "white",
+        width: 100,
+        height: "100%",
+        justifyContent: "center",
+        alignContent: "center",
+        margin: "0 auto"
+      },
   underline: {
     '&:after': {
       borderBottom: `2px solid wheat`
