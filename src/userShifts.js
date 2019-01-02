@@ -96,6 +96,7 @@ class UserShifts extends Component {
     const { classes } = this.props;
     let { showNS, showMS } = this.activateOptions();
     let save = Object.keys(pendingUpdate).length > 0;
+    console.log(this.state)
     return (
       <Card className={classes.root}>
         {save || enableEdit ? (

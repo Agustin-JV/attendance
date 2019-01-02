@@ -98,6 +98,8 @@ class UserProjects extends React.Component {
   render() {
     const { classes } = this.props;
     const { rows, loading } = this.state;
+    
+    console.log(this.state)
     return (
       <Card className={classes.root}>
         <CardContent>
@@ -409,6 +411,7 @@ class UserProjects extends React.Component {
           this.ref.table.setPage(page === 0 ? 1 : maxpage >= page ? maxpage : page);
           this.paginationRef.forceUpdateRows();
           resolve();
+          console.log(this.state)
         }
       );
     });

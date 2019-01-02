@@ -73,6 +73,14 @@ export function mergeArraysMultyKey(leadArray, secondArray, keys) {
     return row;
   });
 */
+export function objectFilter(object, filterFN) {
+  let result = {}
+  Object.keys(object).forEach(function(key) {
+  if(filterFN(key, object[key]))
+    result[key]=object[key];
+  });
+  return result
+}
 export function objectMap(object, mapFn) {
   return Object.keys(object).map(function(key) {
     return mapFn(key, object[key]);
@@ -150,6 +158,31 @@ function capitalizeAll(arr){
 export function capitalizeFirstLetter(string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
 }
+/**
+ * Recives a path a n object on witch to act on, a function to act on the result and a flag that shold not be toch
+ * @param {String[]} p Path goes backwards [child,parent,grandparent]
+ * @param {Object} o Object
+ * @param {Function} func gets as parameter the object on witch to act and should return a result to add to the output object
+ * @param {boolean?} s dont assign it is a flag for it to act diferently on de second iteration down
+ * example : var x = actOnObjectElement(['shifts', 1020, 5, 2017], entrys, (x) => {
+    return {
+      16: 'd'
+    }})
+ */
+export function actOnObjectElement(p, o, func, s) {
+  if (p.length > 1) {
+    if (s) {
+      let k = p.pop()
+      return {
+        ...(o[k]?o[k]: {}), [p[p.length-1]]: actOnObjectElement(p, o[k]?o[k]: {}, func, true)}
+    }
+    return {
+      ...o, [p[p.length-1]]: actOnObjectElement(p, o, func, true)}
+  }
+
+  return func(o[p])
+}
+
 export function isEmpty(obj) {
   // null and undefined are "empty"
   if (obj === null) return true;

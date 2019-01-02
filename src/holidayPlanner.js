@@ -95,6 +95,7 @@ class HolydayPlanner extends React.Component {
   render() {
     const { eventHolidays, loading } = this.state;
     let { classes } = this.props;
+    console.log(this.state);
     return (
       <Card style={{ minWidth: 500 }}>
         <Grid container spacing={8}>
@@ -242,7 +243,7 @@ class HolydayPlanner extends React.Component {
       this.processData(data);
     } else {
       this.setLoading('upload', false);
-      this.props.enqueueSnackbar('File Upload Canceled',{  variant: 'warning'});
+      this.props.enqueueSnackbar('File Upload Canceled', { variant: 'warning' });
     }
   };
   processData = data => {
@@ -267,7 +268,7 @@ class HolydayPlanner extends React.Component {
       }
     }
     this.setLoading('upload', false);
-    this.props.enqueueSnackbar('File Upload Complete',{  variant: 'success'});
+    this.props.enqueueSnackbar('File Upload Complete', { variant: 'success' });
   };
   onInputChange = name => event => {
     this.setState({
@@ -298,7 +299,8 @@ class HolydayPlanner extends React.Component {
     this.setState({ date: moment(date) });
   };
   onRangeChange = range => {
-    //console.log('RC',range)
+    this.getHolidaysData(range.start.getFullYear());
+    
   };
   onDrillDown = (...event) => {
     //console.log('DD',...event)
@@ -378,6 +380,7 @@ class HolydayPlanner extends React.Component {
     let { holidays } = this.state;
     let eventHolidays = [];
     for (let year in holidays) {
+      if(!isEmpty(holidays[year]))
       eventHolidays = eventHolidays.concat(holidays[year].map(this.buildEvents));
     }
     this.setState({ eventHolidays });
@@ -448,20 +451,25 @@ class HolydayPlanner extends React.Component {
       });
 
       // Commit the batch
-      batch.commit().then(this.saveSuccess).catch(this.dintSave(pendingUpdate));
+      batch
+        .commit()
+        .then(this.saveSuccess)
+        .catch(this.dintSave(pendingUpdate));
     }
   };
-  dintSave =(pendingUpdate)=> error => {
+  dintSave = pendingUpdate => error => {
     alert('There was an error while trying to save, please try again in a few seconds');
     console.error('Error writing document: ', error);
     let { loading } = this.state;
     loading['save'] = false;
-    this.props.enqueueSnackbar('Error while save saving try again in a few seconds',{  variant: 'error'});
+    this.props.enqueueSnackbar('Error while save saving try again in a few seconds', {
+      variant: 'error'
+    });
     this.setState({ pendingUpdate: pendingUpdate, loading });
   };
   saveSuccess = () => {
     this.setLoading('save', false);
-    this.props.enqueueSnackbar('Save Complete',{  variant: 'success'});
+    this.props.enqueueSnackbar('Save Complete', { variant: 'success' });
     //console.log('succesfull save');
   };
   /**
@@ -478,13 +486,18 @@ class HolydayPlanner extends React.Component {
    * @return {Promise} emty
    */
   processHolidaysQuery = (document, year) => {
-    let data = document.data().h.map(holiday => {
-      return { date: holiday.date.toDate(), name: holiday.name, official: holiday.official };
-    });
+    let documentData = document.data();
+    let data = {};
+    console.log('documentData', documentData);
+    if (documentData) {
+      data = documentData.h.map(holiday => {
+        return { date: holiday.date.toDate(), name: holiday.name, official: holiday.official };
+      });
+    }
     let { holidays } = this.state;
 
     holidays[year] = data;
-
+console.log('documentData', holidays);
     return new Promise(resolve => {
       this.setState(
         {
@@ -493,7 +506,7 @@ class HolydayPlanner extends React.Component {
         () => {
           this.buildEventHolidays();
           this.setLoading('load', false);
-          this.props.enqueueSnackbar('Load Complete',{  variant: 'success'});
+          this.props.enqueueSnackbar('Load Complete', { variant: 'success' });
           resolve();
         }
       );
