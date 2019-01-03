@@ -7,13 +7,26 @@ import { db } from './fire_init';
 import { Card, CardContent, CardActions } from '@material-ui/core';
 import { withStyles } from '@material-ui/core/styles';
 import { Save, Edit, Delete, PersonAdd } from '@material-ui/icons';
-import { OpenInBrowser, LineStyle, PowerInput, Forward, BorderColor } from '@material-ui/icons';
+import {
+  OpenInBrowser,
+  LineStyle,
+  PowerInput,
+  Forward,
+  BorderColor
+} from '@material-ui/icons';
 import { mergeArrays, isEmpty, arrayMatchPattern } from './utils';
 import Pagination from './pagination';
 import AvChip from './avatarChip';
 import { getData, getMoreData } from './fbGetPaginatedData';
 import { handleFile, XLSX } from './loadXlsx';
 import { Link } from 'react-router-dom';
+import { connect } from 'react-redux';
+import {
+  UPDATE_USERS_DATA,
+  CREATE_USER_DATA,
+  UPDATE_USER_DATA,
+  DELETE_USER_DATA
+} from './actions';
 //#endregion
 
 /**
@@ -98,8 +111,8 @@ class UserProjects extends React.Component {
   render() {
     const { classes } = this.props;
     const { rows, loading } = this.state;
-    
-    console.log(this.state)
+
+    console.log(this.state);
     return (
       <Card className={classes.root}>
         <CardContent>
@@ -114,7 +127,9 @@ class UserProjects extends React.Component {
               clipboardPasteParser={this.paste}
               footerElement={'#hiddenFooter'}
             />
-            <div style={{ borderTop: '1px  solid', borderColor: 'lightgrey' }} />
+            <div
+              style={{ borderTop: '1px  solid', borderColor: 'lightgrey' }}
+            />
             <Pagination
               ref={ref => (this.paginationRef = ref)}
               rows={rows.length}
@@ -123,7 +138,10 @@ class UserProjects extends React.Component {
               onGoLast={this.onGoLast}
               onChangeRowsPerPage={this.handleChangeRowsPerPage}
             />
-            <div id="hiddenFooter" style={{ visibility: 'hidden', display: 'none' }} />
+            <div
+              id="hiddenFooter"
+              style={{ visibility: 'hidden', display: 'none' }}
+            />
           </div>
         </CardContent>
         <CardActions style={{ paddingTop: '0%' }}>
@@ -157,7 +175,13 @@ class UserProjects extends React.Component {
           <Link to={'projects/user/' + this.getSelectedUser()}>
             <AvChip
               cAr={['indigo', 400, 600]}
-              avatar={this.state.selectedRows.length === 1 ? <BorderColor /> : <PersonAdd />}
+              avatar={
+                this.state.selectedRows.length === 1 ? (
+                  <BorderColor />
+                ) : (
+                  <PersonAdd />
+                )
+              }
               label={this.state.selectedRows.length === 1 ? 'Edit' : 'Add'}
               variant="outlined"
               hide={!this.state.edit}
@@ -166,7 +190,11 @@ class UserProjects extends React.Component {
             />
           </Link>
           <AvChip
-            cAr={this.state.selectedRows.length > 0 ? ['indigo', 400, 700] : ['grey', 500, 700]}
+            cAr={
+              this.state.selectedRows.length > 0
+                ? ['indigo', 400, 700]
+                : ['grey', 500, 700]
+            }
             avatar={<Delete />}
             onClick={this.delete}
             label="Delete Selected"
@@ -184,11 +212,17 @@ class UserProjects extends React.Component {
             clickable={true}
           />
           <AvChip
-            cAr={this.state.pendingUpdate.length > 0 ? ['indigo', 400, 700] : ['grey', 500, 700]}
+            cAr={
+              this.state.pendingUpdate.length > 0
+                ? ['indigo', 400, 700]
+                : ['grey', 500, 700]
+            }
             avatar={<Save />}
             onClick={this.save}
             label="Save"
-            variant={this.state.pendingUpdate.length > 0 ? 'default' : 'outlined'}
+            variant={
+              this.state.pendingUpdate.length > 0 ? 'default' : 'outlined'
+            }
             hide={!this.state.edit}
             disabled={this.state.pendingUpdate.length > 0}
             clickable={this.state.pendingUpdate.length > 0}
@@ -357,11 +391,32 @@ class UserProjects extends React.Component {
       //Here we have to discrimine between  the rows that are actual data and the ones that a are garbage
       for (let x in rowData) {
         let raw = rowData[x].split('\t');
-        let [sap_id, name, project, project_code, client, rm_sap_id, badge] = raw;
+        let [
+          sap_id,
+          name,
+          project,
+          project_code,
+          client,
+          rm_sap_id,
+          badge
+        ] = raw;
         let sap_id2 = Number(sap_id);
         let rm_sap_id2 = Number(rm_sap_id);
-        let obj = { sap_id, name, project, project_code, client, rm_sap_id, badge };
-        if (!isNaN(sap_id2) && sap_id2 !== 0 && rm_sap_id2 !== 0 && !isNaN(rm_sap_id2)) {
+        let obj = {
+          sap_id,
+          name,
+          project,
+          project_code,
+          client,
+          rm_sap_id,
+          badge
+        };
+        if (
+          !isNaN(sap_id2) &&
+          sap_id2 !== 0 &&
+          rm_sap_id2 !== 0 &&
+          !isNaN(rm_sap_id2)
+        ) {
           goodData.push(obj);
         }
       }
@@ -408,10 +463,12 @@ class UserProjects extends React.Component {
           let { rowsPerPage, page } = this.state;
           let maxpage = this.ref.table.getPageMax();
           this.ref.table.setPageSize(rowsPerPage);
-          this.ref.table.setPage(page === 0 ? 1 : maxpage >= page ? maxpage : page);
+          this.ref.table.setPage(
+            page === 0 ? 1 : maxpage >= page ? maxpage : page
+          );
           this.paginationRef.forceUpdateRows();
           resolve();
-          console.log(this.state)
+          console.log(this.state);
         }
       );
     });
@@ -430,10 +487,14 @@ class UserProjects extends React.Component {
       for (let x in pendingUpdate) {
         if (pendingUpdate[x][pendingUpdate[x].sap_id] === 0) {
           // Delete the user
-          var deleteRef = db.collection('users').doc(String(pendingUpdate[x].sap_id));
+          var deleteRef = db
+            .collection('users')
+            .doc(String(pendingUpdate[x].sap_id));
           batch.delete(deleteRef);
         } else {
-          var userRef = db.collection('users').doc(String(pendingUpdate[x].sap_id));
+          var userRef = db
+            .collection('users')
+            .doc(String(pendingUpdate[x].sap_id));
           console.log(pendingUpdate[x]);
           pendingUpdate[x].badge = pendingUpdate[x].badge || 'N/A';
           batch.set(userRef, pendingUpdate[x]);
@@ -552,4 +613,16 @@ const columns = [
   }
 ];
 //#endregion
-export default withStyles(styles)(UserProjects);
+const mapStateToProps = state => ({
+  users: state.users
+});
+const actions = {
+  UPDATE_USERS_DATA,
+  CREATE_USER_DATA,
+  UPDATE_USER_DATA,
+  DELETE_USER_DATA
+};
+export default connect(
+  mapStateToProps,
+  actions
+)(withStyles(styles)(UserProjects));

@@ -7,11 +7,24 @@ import {
 } from '../constants/ActionTypes';
 
 import { actOnObjectElement, objectFilter } from '../utils';
-export default function todos(state = {}, action) {
+export default function todos(state = {}, action){
+  return{
+    lastShift:lastShift(state.lastShift,action),
+    shifts:shifts(state.shifts,action)
+  }
+}
+  function lastShift(state = null, action) {
   switch (action.type) {
     case UPDATE_SHIFTS_DATA:
-      return actOnObjectElement( action.path, state, action.func );
-
+      return action.lastShift;
+    default:
+      return state;
+  }
+}
+ function shifts(state = {}, action) {
+  switch (action.type) {
+    case UPDATE_SHIFTS_DATA:
+      return action.data//actOnObjectElement( action.path, state, action.func(action.data) );
     case CREATE_SHIFT_DATA:
       return actOnObjectElement(
         ['shift', action.id, action.month, action.year], 

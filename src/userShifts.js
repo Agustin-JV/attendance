@@ -8,7 +8,14 @@ import moment from 'moment';
 import withDragDropContext from './withDnDContext';
 import { withStyles } from '@material-ui/core/styles';
 import * as colors from '@material-ui/core/colors';
-import { Typography, CardContent, CardActions, IconButton, Card, Button } from '@material-ui/core';
+import {
+  Typography,
+  CardContent,
+  CardActions,
+  IconButton,
+  Card,
+  Button
+} from '@material-ui/core';
 import { Save, Edit, Forward } from '@material-ui/icons';
 import ShiftSelect from './shiftSelect';
 import AvChip from './avatarChip';
@@ -90,13 +97,28 @@ class UserShifts extends Component {
     loading[key] = value;
     this.setState({ loading });
   }
+  componentWillReceiveProps(props) {
+    if (isEmpty(props.shifts)) {
+      //Fetch data
+    }
+    if (this.props.shifts !== props.shifts) {
+      this.processShiftsUpdate(props.shifts)
+    }
+  }
   //#region render
   render() {
-    const { enableEdit, events, open, pendingUpdate, isOfficialHoliday, isHoldiDay } = this.state;
+    const {
+      enableEdit,
+      events,
+      open,
+      pendingUpdate,
+      isOfficialHoliday,
+      isHoldiDay
+    } = this.state;
     const { classes } = this.props;
     let { showNS, showMS } = this.activateOptions();
     let save = Object.keys(pendingUpdate).length > 0;
-    console.log(this.state)
+    console.log(this.state);
     return (
       <Card className={classes.root}>
         {save || enableEdit ? (
@@ -187,7 +209,9 @@ class UserShifts extends Component {
         </span>
         <div style={{ marginLeft: 'auto' }}>
           <AvChip
-            cAr={this.state.enableEdit ? ['indigo', 400, 700] : ['grey', 500, 700]}
+            cAr={
+              this.state.enableEdit ? ['indigo', 400, 700] : ['grey', 500, 700]
+            }
             theme={this.state.enableEdit ? 'white' : 'black'}
             avatar={<Edit />}
             variant={this.state.enableEdit ? 'default' : 'outlined'}
@@ -268,7 +292,10 @@ class UserShifts extends Component {
       },
       () => {
         let { startDate, endDate } = this.state;
-        if (startDate.year !== endDate.year && startDate.month !== endDate.month)
+        if (
+          startDate.year !== endDate.year &&
+          startDate.month !== endDate.month
+        )
           this.getShifstsData(endDate.year, endDate.month);
         this.getShifstsData(startDate.year, startDate.month);
       }
@@ -322,10 +349,24 @@ class UserShifts extends Component {
     }
   };
   onUdateStart = async (event, newStart) => {
-    return await this.onUpdateEventLenght(event, newStart, event.end, event.start, newStart, false);
+    return await this.onUpdateEventLenght(
+      event,
+      newStart,
+      event.end,
+      event.start,
+      newStart,
+      false
+    );
   };
   onUpdateEnd = async (event, newEnd) => {
-    return await this.onUpdateEventLenght(event, event.start, newEnd, newEnd, event.end, true);
+    return await this.onUpdateEventLenght(
+      event,
+      event.start,
+      newEnd,
+      newEnd,
+      event.end,
+      true
+    );
   };
   onUpdateEventLenght = (event, start, end, delStart, delEnd, flip) => {
     event = this.eventRules(event, event.title, start, end);
@@ -464,15 +505,23 @@ class UserShifts extends Component {
           let date = new Date(day.start);
           let holiday = false;
           activeHolidays.forEach(_holiday => {
-            if (date.getDate() === _holiday.date.getUTCDate()) holiday = _holiday;
+            if (date.getDate() === _holiday.date.getUTCDate())
+              holiday = _holiday;
           });
           if (holiday) {
             let event = day.events[0];
             if (event !== undefined) {
               let code = event.eventItem.title;
-              let newCode = this.doesNeedCodeCorrection(code, holidayCodes[holiday.official].code);
+              let newCode = this.doesNeedCodeCorrection(
+                code,
+                holidayCodes[holiday.official].code
+              );
               if (newCode) {
-                updateEvents.push({ userId: slot.slotId, code: newCode, date: date });
+                updateEvents.push({
+                  userId: slot.slotId,
+                  code: newCode,
+                  date: date
+                });
               }
             } else {
               let newEvent = this.generateEvent(
@@ -625,7 +674,14 @@ class UserShifts extends Component {
    */
   getShifstsMoreData = (year, month) => {
     let path = 'wsinf/' + year + '/' + month;
-    getMoreData(path, 50, this.processShiftQuery, this.state.lastShiftEntry, year, month);
+    getMoreData(
+      path,
+      50,
+      this.processShiftQuery,
+      this.state.lastShiftEntry,
+      year,
+      month
+    );
   };
   /**
    * @param {any} snapshot
@@ -661,6 +717,17 @@ class UserShifts extends Component {
       );
     });
   };
+  processShiftsUpdate = entrys => {
+    let { pendingUpdate } = this.state;
+    objectForEach(pendingUpdate, (year, months) => {
+      objectForEach(months, (month, users) => {
+        for (let user in users) {
+          this.setEntrys(entrys, year, month, user, users[user].shifts);
+        }
+      });
+    });
+    this.setState({ entrys }, () => this.buildVisibleShifts() );
+  };
   /** Geterates only the shifts for the visible users */
   buildVisibleShifts = () => {
     let { entrys, viewModel } = this.state;
@@ -674,7 +741,14 @@ class UserShifts extends Component {
       objectForEach(entrys, (year, months) => {
         objectForEach(months, (month, users) => {
           if (users[user] !== undefined)
-            events.push(...this.groupSameAdjasentDays(user, year, month, users[user].shifts));
+            events.push(
+              ...this.groupSameAdjasentDays(
+                user,
+                year,
+                month,
+                users[user].shifts
+              )
+            );
         });
       });
     });
@@ -714,7 +788,14 @@ class UserShifts extends Component {
             )
           ).format('Y-M-D HH:mm:ss');
           let end = moment(
-            new Date(year, month - 1, x, tf ? tf.end[0] : 23, tf ? tf.end[1] : 59, 59)
+            new Date(
+              year,
+              month - 1,
+              x,
+              tf ? tf.end[0] : 23,
+              tf ? tf.end[1] : 59,
+              59
+            )
           ).format('Y-M-D HH:mm:ss');
           output.push(this.generateEvent(sap_id, start, end, days[x]));
         }
@@ -756,12 +837,21 @@ class UserShifts extends Component {
       d.setDate(d.getDate() + i);
       let year = d.getFullYear();
       let month = d.getMonth() + 1;
-      pendingUpdate = this.setEntry(pendingUpdate, year, month, userId, d.getDate(), code);
+      pendingUpdate = this.setEntry(
+        pendingUpdate,
+        year,
+        month,
+        userId,
+        d.getDate(),
+        code
+      );
       entrys = this.setEntry(entrys, year, month, userId, d.getDate(), code);
     }
 
     return new Promise(resolve => {
-      this.setState({ pendingUpdate, entrys, pendingSave: true }, () => resolve());
+      this.setState({ pendingUpdate, entrys, pendingSave: true }, () =>
+        resolve()
+      );
     });
   };
 
@@ -769,7 +859,8 @@ class UserShifts extends Component {
     entrys[year] = entrys[year] || {};
     entrys[year][month] = entrys[year][month] || {};
     entrys[year][month][userId] = entrys[year][month][userId] || {};
-    entrys[year][month][userId]['shifts'] = entrys[year][month][userId]['shifts'] || {};
+    entrys[year][month][userId]['shifts'] =
+      entrys[year][month][userId]['shifts'] || {};
     if (date !== undefined) return entrys[year][month][userId]['shifts'][date];
   };
   setEntrys = (entrys, year, month, userId, data) => {
@@ -788,7 +879,14 @@ class UserShifts extends Component {
     batch.forEach(({ userId, code, date }) => {
       let year = date.getFullYear();
       let month = date.getMonth() + 1;
-      pendingUpdate = this.setEntry(pendingUpdate, year, month, userId, date.getDate(), code);
+      pendingUpdate = this.setEntry(
+        pendingUpdate,
+        year,
+        month,
+        userId,
+        date.getDate(),
+        code
+      );
       entrys = this.setEntry(entrys, year, month, userId, date.getDate(), code);
     });
 
@@ -796,7 +894,9 @@ class UserShifts extends Component {
   };
   getVisibleUsers = (page, rowsPerPage) => {
     let { users } = this.state;
-    let visibleUsers = [].concat(users).splice((page - 1) * rowsPerPage, rowsPerPage);
+    let visibleUsers = []
+      .concat(users)
+      .splice((page - 1) * rowsPerPage, rowsPerPage);
     this.state.viewModel.setResources(visibleUsers);
     this.buildVisibleShifts();
   };
@@ -842,7 +942,10 @@ class UserShifts extends Component {
     }
     if (code === 'MS') {
       e.movable = lenght >= 1 ? false : true;
-      if (lenght > 1 || (!isAny(start.day(), [0, 6]) || !isAny(end.day(), [0, 6]))) {
+      if (
+        lenght > 1 ||
+        (!isAny(start.day(), [0, 6]) || !isAny(end.day(), [0, 6]))
+      ) {
         e.title = 'S';
         code = 'S';
         e.movable = true;
@@ -872,7 +975,11 @@ class UserShifts extends Component {
    */
   processHolidaysQuery = (document, year) => {
     let data = document.data().h.map(holiday => {
-      return { date: holiday.date.toDate(), name: holiday.name, official: holiday.official };
+      return {
+        date: holiday.date.toDate(),
+        name: holiday.name,
+        official: holiday.official
+      };
     });
     let { holidays } = this.state;
 
@@ -949,5 +1056,9 @@ const holidayCodes = {
     code: 'H'
   }
 };
-
+const mapStateToProps = state => ({
+  shifts: state.shifts.shifts,
+  lastShift: state.shifts.lastShift,
+  loading: state.loading
+});
 export default withStyles(styles)(withDragDropContext(UserShifts));

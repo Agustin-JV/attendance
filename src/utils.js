@@ -74,12 +74,11 @@ export function mergeArraysMultyKey(leadArray, secondArray, keys) {
   });
 */
 export function objectFilter(object, filterFN) {
-  let result = {}
+  let result = {};
   Object.keys(object).forEach(function(key) {
-  if(filterFN(key, object[key]))
-    result[key]=object[key];
+    if (filterFN(key, object[key])) result[key] = object[key];
   });
-  return result
+  return result;
 }
 export function objectMap(object, mapFn) {
   return Object.keys(object).map(function(key) {
@@ -87,11 +86,11 @@ export function objectMap(object, mapFn) {
   });
 }
 export function objectFilterToArray(object, filterFN) {
-  let result = []
+  let result = [];
   Object.keys(object).forEach(function(key) {
     result.push(filterFN(key, object[key]));
   });
-  return result
+  return result;
 }
 export function objectForEach(object, mapFn) {
   return Object.keys(object).forEach(function(key) {
@@ -110,50 +109,48 @@ export function arrayMatchPattern(array, pattern) {
   for (let x in array) {
     let regex = /([a-z]+)\|?([a-z]*)/g;
     let exec = regex.exec(pattern[x]);
-    let [,a,b] = exec;
+    let [, a, b] = exec;
     let type = typeof array[x];
-    if ((b!== '' && (type !== a && type !== b)) && pattern[x] !== 'any') {
+    if (b !== '' && (type !== a && type !== b) && pattern[x] !== 'any') {
       return false;
-    }
-    else if ( type !== a && b===''  && a !== 'any') {
+    } else if (type !== a && b === '' && a !== 'any') {
       return false;
     }
   }
   return true;
 }
 
-export function arrayBuildComplexPattern( pattern) {
+export function arrayBuildComplexPattern(pattern) {
   let simplePattern = [];
   for (let range in pattern) {
     let regex = /([0-9]+)-?([0-9]*)/g;
     let exec = regex.exec(range);
     let [, start, end] = exec;
-    console.log(start,end,exec)
+    console.log(start, end, exec);
     if (end !== '') {
-      console.log('x',end-start)
-      for (let i = 0; i <= end-start; i++) {
-      console.log(i)
+      console.log('x', end - start);
+      for (let i = 0; i <= end - start; i++) {
+        console.log(i);
         simplePattern.push(pattern[range]);
       }
-    }
-    else simplePattern.push(pattern[range]);
+    } else simplePattern.push(pattern[range]);
   }
-  console.log('CP', simplePattern)
+  console.log('CP', simplePattern);
   return simplePattern;
 }
 
 export function separateCamelCase(text, all = false) {
   let m = text.match(/[A-Z]?[a-z]*/g);
-  if(all){
-    return capitalizeAll(m)
+  if (all) {
+    return capitalizeAll(m);
   }
   return capitalizeFirstLetter(m.join(' '));
 }
-function capitalizeAll(arr){
-  for(let x in arr){
-    arr[x] = capitalizeFirstLetter(arr[x])
+function capitalizeAll(arr) {
+  for (let x in arr) {
+    arr[x] = capitalizeFirstLetter(arr[x]);
   }
-  return arr.join(' ')
+  return arr.join(' ');
 }
 export function capitalizeFirstLetter(string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
@@ -164,6 +161,7 @@ export function capitalizeFirstLetter(string) {
  * @param {Object} o Object
  * @param {Function} func gets as parameter the object on witch to act and should return a result to add to the output object
  * @param {boolean?} s dont assign it is a flag for it to act diferently on de second iteration down
+ * @return {Object} result
  * example : var x = actOnObjectElement(['shifts', 1020, 5, 2017], entrys, (x) => {
     return {
       16: 'd'
@@ -172,15 +170,19 @@ export function capitalizeFirstLetter(string) {
 export function actOnObjectElement(p, o, func, s) {
   if (p.length > 1) {
     if (s) {
-      let k = p.pop()
+      let k = p.pop();
       return {
-        ...(o[k]?o[k]: {}), [p[p.length-1]]: actOnObjectElement(p, o[k]?o[k]: {}, func, true)}
+        ...(o[k] ? o[k] : {}),
+        [p[p.length - 1]]: actOnObjectElement(p, o[k] ? o[k] : {}, func, true)
+      };
     }
     return {
-      ...o, [p[p.length-1]]: actOnObjectElement(p, o, func, true)}
+      ...o,
+      [p[p.length - 1]]: actOnObjectElement(p, o, func, true)
+    };
   }
 
-  return func(o[p])
+  return func(o[p]);
 }
 
 export function isEmpty(obj) {
@@ -363,7 +365,15 @@ export function getNextDay(year, month, day) {
  */
 export function getMidNightTime(time, toMidnight, excelTime) {
   let x = strTimeToDate(time);
-  let y = new Date(x.getFullYear(), x.getMonth(), x.getDate() + (toMidnight ? 1 : 0), 0, 0, 0, 0);
+  let y = new Date(
+    x.getFullYear(),
+    x.getMonth(),
+    x.getDate() + (toMidnight ? 1 : 0),
+    0,
+    0,
+    0,
+    0
+  );
   let z = toMidnight ? y - x : x - y;
   //excel store the time on fraction of a day 1 = one day (24hr)
   //so we got to devide to trun it to that format 1 day = 8.64e+7ms
