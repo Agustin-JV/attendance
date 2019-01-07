@@ -2,7 +2,7 @@
 
 //#region IMPORTS
 import React, { Component } from 'react';
-import 'react-big-scheduler/lib/css/style.css';
+import './react-big-scheduler/css/style.css';
 import BigCalendar from './bigCalendar';
 import moment from 'moment';
 import withDragDropContext from './withDnDContext';
@@ -33,6 +33,9 @@ import { getData, getMoreData, getDocument } from './fbGetPaginatedData';
 import shift_colors from './shift_colors.json';
 import { db } from './fire_init';
 import { handleFile, XLSX } from './loadXlsx';
+import { onShiftRetrieveSucces } from './actions/shifts';
+import { onUserRetrieveSucces } from './actions/users';
+import { connect } from 'react-redux';
 //#endregion
 //#region TS annotations
 /**
@@ -98,12 +101,28 @@ class UserShifts extends Component {
     this.setState({ loading });
   }
   componentWillReceiveProps(props) {
+    console.log('componentWillReceiveProps', props.shifts, props.users);
     if (isEmpty(props.shifts)) {
-      //Fetch data
+      this.getShifts();
+      //console.log(props.shifts)
     }
     if (this.props.shifts !== props.shifts) {
-      this.processShiftsUpdate(props.shifts)
+      console.log(props.shifts)
+      this.getVisibleUsers(this.state.page, this.state.rowsPerPage);
+      this.paginationRef.forceUpdateRows();
+      this.processShiftsUpdate(props.shifts);
     }
+    this.setState({poop:'its real'})
+  }
+  componentWillMount() {
+    //this.getShifts();
+    console.log('will')
+  }
+  componentDidMount(){
+    console.log('mounterd')
+  }
+  componentDidUpdate(){
+    console.log('did update')
   }
   //#region render
   render() {
@@ -118,7 +137,6 @@ class UserShifts extends Component {
     const { classes } = this.props;
     let { showNS, showMS } = this.activateOptions();
     let save = Object.keys(pendingUpdate).length > 0;
-    console.log(this.state);
     return (
       <Card className={classes.root}>
         {save || enableEdit ? (
@@ -172,7 +190,7 @@ class UserShifts extends Component {
       <CardActions style={{ paddingTop: '0%' }} disableActionSpacing>
         <Pagination
           ref={ref => (this.paginationRef = ref)}
-          rows={this.state.users.length}
+          rows={this.props.users.length}
           onPageChange={this.handleChangePage}
           onGoNext={this.onGoNext}
           onGoLast={this.onGoLast}
@@ -292,12 +310,13 @@ class UserShifts extends Component {
       },
       () => {
         let { startDate, endDate } = this.state;
+        console.log('setDateRange');
         if (
           startDate.year !== endDate.year &&
           startDate.month !== endDate.month
         )
-          this.getShifstsData(endDate.year, endDate.month);
-        this.getShifstsData(startDate.year, startDate.month);
+          this.props.getData(this.shiftRequest(endDate.year, endDate.month));
+        this.props.getData(this.shiftRequest(startDate.year, startDate.month));
       }
     );
   };
@@ -401,7 +420,6 @@ class UserShifts extends Component {
     return { showNS: false, showMS: false };
   };
   componentDidMount = () => {
-    this.getShifts();
     this.getHolidaysData(new Date().getFullYear());
   };
   onGoLast = () => {
@@ -431,25 +449,55 @@ class UserShifts extends Component {
       isHoliday: false
     });
   };
+  shiftRequest = (year, month, lastRow = null) => {
+    let args = {
+      collection: 'wsinf/' + year + '/' + month,
+      tag: 'download_shifts',
+      limit: this.shiftAmmountToRetrieve(),
+      year,
+      month,
+      callback: onShiftRetrieveSucces
+    };
+    if (lastRow !== null) {
+      args = { ...args, lastRow };
+    }
+    console.log('shiftRequest', args);
+    return args;
+  };
+  userRequest = (lastRow = null) => {
+    let args = {
+      collection: 'users',
+      tag: 'download_users',
+      limit: 50,
+      callback: onUserRetrieveSucces
+    };
+    if (lastRow !== null) {
+      args = { ...args, lastRow };
+    }
+    console.log('userRequest', args);
+    return args;
+  };
   getShifts = () => {
     let { startDate, endDate } = this.state;
-    this.getUsersData();
-    if (startDate.month === endDate.month) {
-      this.getShifstsData(startDate.year, startDate.month);
-    } else {
-      this.getShifstsData(startDate.year, startDate.month);
-      this.getShifstsData(endDate.year, endDate.month);
+    console.log('getShifts');
+    this.props.getData(this.userRequest());
+    if (startDate.month !== endDate.month) {
+      this.props.getData(this.shiftRequest(endDate.year, endDate.month));
     }
+    this.props.getData(this.shiftRequest(startDate.year, startDate.month));
   };
   getMoreShifts = () => {
     let { startDate, endDate } = this.state;
-    this.getUsersMoreData();
-    if (startDate.month === endDate.month) {
-      this.getShifstsMoreData(startDate.year, startDate.month);
-    } else {
-      this.getShifstsMoreData(startDate.year, startDate.month);
-      this.getShifstsMoreData(endDate.year, endDate.month);
+    console.log('getMoreShifts');
+    this.props.getMoreData(this.userRequest(this.state.lastUser));
+    if (startDate.month !== endDate.month) {
+      this.props.getMoreData(
+        this.shiftRequest(endDate.year, endDate.month, this.props.lastShift)
+      );
     }
+    this.props.getMoreData(
+      this.shiftRequest(startDate.year, startDate.month, this.props.lastShift)
+    );
   };
   onSave = () => {
     let { entrys } = this.state;
@@ -656,67 +704,11 @@ class UserShifts extends Component {
     });
   };
   // #endregion
-
-  //#region Shifts Serfer Fetch & build
-  /**
-   * @param {number} [year]
-   * @param {number} [month]
-   */
-  getShifstsData = (year, month) => {
-    let { users } = this.state;
-    let retrieveCount = users.length > 0 ? users.length : 50;
-    let path = 'wsinf/' + year + '/' + month;
-    getData(path, retrieveCount, this.processShiftQuery, year, month);
+  shiftAmmountToRetrieve = () => {
+    let { users } = this.props;
+    return users.length > 0 ? users.length : 50;
   };
-  /**
-   * @param {number} [year]
-   * @param {number} [month]
-   */
-  getShifstsMoreData = (year, month) => {
-    let path = 'wsinf/' + year + '/' + month;
-    getMoreData(
-      path,
-      50,
-      this.processShiftQuery,
-      this.state.lastShiftEntry,
-      year,
-      month
-    );
-  };
-  /**
-   * @param {any} snapshot
-   * @param {number} year
-   * @param {number} month
-   * @return {Promise} emty
-   */
-  processShiftQuery = (snapshot, year, month) => {
-    let lastVisible = snapshot.docs[snapshot.docs.length - 1];
-    let { entrys, lastShiftEntry, pendingUpdate } = this.state;
-
-    snapshot.docs.forEach(user => {
-      entrys = this.setEntrys(entrys, year, month, user.id, user.data().m);
-    });
-    //merge pending update with the fetch data to keep the changes made
-    objectForEach(pendingUpdate, (year, months) => {
-      objectForEach(months, (month, users) => {
-        for (let user in users) {
-          this.setEntrys(entrys, year, month, user, users[user].shifts);
-        }
-      });
-    });
-    return new Promise(resolve => {
-      this.setState(
-        {
-          entrys: entrys,
-          lastShiftEntry: lastVisible ? lastVisible : lastShiftEntry
-        },
-        () => {
-          resolve();
-          this.buildVisibleShifts();
-        }
-      );
-    });
-  };
+  //#region Shifts Server build join with global data and local updates
   processShiftsUpdate = entrys => {
     let { pendingUpdate } = this.state;
     objectForEach(pendingUpdate, (year, months) => {
@@ -726,7 +718,7 @@ class UserShifts extends Component {
         }
       });
     });
-    this.setState({ entrys }, () => this.buildVisibleShifts() );
+    this.setState({ entrys }, () => this.buildVisibleShifts());
   };
   /** Geterates only the shifts for the visible users */
   buildVisibleShifts = () => {
@@ -893,7 +885,7 @@ class UserShifts extends Component {
     this.setState({ pendingUpdate, entrys }, this.buildVisibleShifts(true));
   };
   getVisibleUsers = (page, rowsPerPage) => {
-    let { users } = this.state;
+    let { users } = this.props;
     let visibleUsers = []
       .concat(users)
       .splice((page - 1) * rowsPerPage, rowsPerPage);
@@ -974,15 +966,18 @@ class UserShifts extends Component {
    * @return {Promise} emty
    */
   processHolidaysQuery = (document, year) => {
-    let data = document.data().h.map(holiday => {
-      return {
-        date: holiday.date.toDate(),
-        name: holiday.name,
-        official: holiday.official
-      };
-    });
+    let documentData = document.data();
+    let data = {};
+    if (documentData) {
+      data = documentData.h.map(holiday => {
+        return {
+          date: holiday.date.toDate(),
+          name: holiday.name,
+          official: holiday.official
+        };
+      });
+    }
     let { holidays } = this.state;
-
     holidays[year] = data;
 
     return new Promise(resolve => {
@@ -1056,9 +1051,22 @@ const holidayCodes = {
     code: 'H'
   }
 };
-const mapStateToProps = state => ({
-  shifts: state.shifts.shifts,
-  lastShift: state.shifts.lastShift,
-  loading: state.loading
-});
-export default withStyles(styles)(withDragDropContext(UserShifts));
+const mapStateToProps = (state) => {
+  console.log('mapStateToProps');
+  return {
+    shifts: state.shifts.shifts,
+    lastShift: state.shifts.lastShift,
+
+    lasUser: state.users.lastUser,
+    users: state.users.users,
+    loading: state.loading.download
+  };
+};
+const actions = {
+  getData,
+  getMoreData
+};
+export default connect(
+  mapStateToProps,
+  actions
+)(withStyles(styles)(withDragDropContext(UserShifts)));

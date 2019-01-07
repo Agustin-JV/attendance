@@ -93,11 +93,13 @@ export const uploadloading = (key, status) => ({
   key,
   status
 });
-export const downloadloading = (key, status) => ({
-  type: types.DOWNLOAD,
-  key,
-  status
-});
+export function downloadloading(key, status) {
+  return {
+    type: types.DOWNLOAD,
+    key,
+    status
+  };
+}
 export const saveloading = (key, status) => ({
   type: types.SAVE,
   key,

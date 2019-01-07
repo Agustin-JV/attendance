@@ -2,8 +2,12 @@
 
 //#region IMPORTS
 import React, { Component } from 'react';
-import 'react-big-scheduler/lib/css/style.css';
-import Scheduler, { SchedulerData, ViewTypes, DATE_FORMAT } from 'react-big-scheduler';
+import './react-big-scheduler/css/style.css';
+import Scheduler, {
+  SchedulerData,
+  ViewTypes,
+  DATE_FORMAT
+} from './react-big-scheduler';
 import moment from 'moment';
 import withDragDropContext from './withDnDContext';
 
@@ -148,7 +152,11 @@ class BigCalendar extends Component {
     });
   };
   onViewChange = (schedulerData, view) => {
-    schedulerData.setViewType(view.viewType, view.showAgenda, view.isEventPerspective);
+    schedulerData.setViewType(
+      view.viewType,
+      view.showAgenda,
+      view.isEventPerspective
+    );
     this.onScheduleChange(schedulerData);
   };
   onSelectDate = (schedulerData, date) => {

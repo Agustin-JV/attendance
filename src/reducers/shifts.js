@@ -7,13 +7,15 @@ import {
 } from '../constants/ActionTypes';
 
 import { actOnObjectElement, objectFilter } from '../utils';
-export default function todos(state = {}, action){
-  return{
-    lastShift:lastShift(state.lastShift,action),
-    shifts:shifts(state.shifts,action)
-  }
+export default function todos(state = {}, action) {
+  let va = {
+    lastShift: lastShift(state.lastShift, action),
+    shifts: shifts(state.shifts, action)
+  };
+  //console.log('shifts',va)
+  return va;
 }
-  function lastShift(state = null, action) {
+function lastShift(state = null, action) {
   switch (action.type) {
     case UPDATE_SHIFTS_DATA:
       return action.lastShift;
@@ -21,22 +23,34 @@ export default function todos(state = {}, action){
       return state;
   }
 }
- function shifts(state = {}, action) {
+function shifts(state = {}, action) {
   switch (action.type) {
     case UPDATE_SHIFTS_DATA:
-      return action.data//actOnObjectElement( action.path, state, action.func(action.data) );
+      action.data.docs.forEach(user => {
+        state = actOnObjectElement(
+          ['shifts', user.id, action.month, action.year],
+          state,
+          user.data().m
+        );
+      });
+      return state;
+    //return action.data; //actOnObjectElement( action.path, state, action.func(action.data) );
     case CREATE_SHIFT_DATA:
       return actOnObjectElement(
-        ['shift', action.id, action.month, action.year], 
-        state, 
-        x => { return { ...action.data }; }
-        );
+        ['shift', action.id, action.month, action.year],
+        state,
+        x => {
+          return { ...action.data };
+        }
+      );
     case UPDATE_SHIFT_DATA:
       return actOnObjectElement(
-          ['shift', action.id, action.month, action.year], 
-          state, 
-          x => { return { ...x, ...action.data };
-      });
+        ['shift', action.id, action.month, action.year],
+        state,
+        x => {
+          return { ...x, ...action.data };
+        }
+      );
     /*return {
             ...state,[action.year]:{
                 ...state[action.year],[action.month]:{
@@ -50,11 +64,13 @@ export default function todos(state = {}, action){
             }
         }*/
     case REPLACE_SHIFT_DATA:
-    return actOnObjectElement(
-        ['shift', action.id, action.month, action.year], 
-        state, 
-        x => { return { ...action.data }; }
-        );
+      return actOnObjectElement(
+        ['shift', action.id, action.month, action.year],
+        state,
+        x => {
+          return { ...action.data };
+        }
+      );
     /*return {
         ...state,
         [action.year]: {
@@ -68,12 +84,14 @@ export default function todos(state = {}, action){
         }
       };*/
     case DELETE_SHIFT_DATA:
-    return actOnObjectElement(
-        ['shift', action.id, action.month, action.year], 
-        state, 
-        x => { return objectFilter(x,(k, v) => k !== action.target) }
-        );
-     /* return {
+      return actOnObjectElement(
+        ['shift', action.id, action.month, action.year],
+        state,
+        x => {
+          return objectFilter(x, (k, v) => k !== action.target);
+        }
+      );
+    /* return {
         ...state,
         [action.year]: {
           ...state[action.year],
@@ -96,4 +114,3 @@ export default function todos(state = {}, action){
       return state;
   }
 }
-

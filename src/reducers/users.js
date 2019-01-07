@@ -5,13 +5,19 @@ import {
   DELETE_USER_DATA
 } from '../constants/ActionTypes';
 import { mergeObjArrays } from '../utils';
-
-export default function todos(state = {}, action) {
-  return {
-    lastUser: lastUser(state.files, action),
-    users: users(state.users, action),
+import { combineReducers } from 'redux';
+export default combineReducers({
+  lastUser,
+  users,
+});
+/*export default function todos(state = {}, action) {
+  let va = {
+    lastUser: lastUser(state.lastUser, action),
+    users: users(state.users, action)
   };
-}
+  console.log('users', va);
+  return {...state,...va};
+}*/
 function lastUser(state = null, action) {
   switch (action.type) {
     case UPDATE_USERS_DATA:
@@ -23,7 +29,7 @@ function lastUser(state = null, action) {
 function users(state = [], action) {
   switch (action.type) {
     case UPDATE_USERS_DATA:
-      return mergeObjArrays(state, action.data, 'sap_id');
+      return mergeObjArrays(state, action.data, 'id');
     case CREATE_USER_DATA:
       return [
         ...state,

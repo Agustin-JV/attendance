@@ -4,9 +4,6 @@ import InApp from './inapp';
 import Home from './home';
 import firebase from './fire_init';
 import { SnackbarProvider } from 'notistack';
-import { Provider } from 'react-redux';
-import configureStore from './store/configureStore';
-const store = configureStore();
 class AppRouter extends React.Component {
   constructor(props) {
     super(props);
@@ -27,10 +24,10 @@ class AppRouter extends React.Component {
   }
   render() {
     return (
+      
       <SnackbarProvider maxSnack={3}>
 
       <Router>
-      <Provider store={store}>
         <div style={{height:'100%'}}>
           <Route
             exact
@@ -43,12 +40,12 @@ class AppRouter extends React.Component {
             render={() => (this.state.isAuthenticated ? null : <Redirect to="/" />)}
           />
           <Route exact path="/" render={() => <Home auth={this.revalidate} />} />
-
+{console.log('wowow')}
           <Route exact path="/:id" render={() => <InApp auth={this.revalidate} />} />
         </div>
-        </Provider>
       </Router>
       </SnackbarProvider>
+        
     );
   }
 }
