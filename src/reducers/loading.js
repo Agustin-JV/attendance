@@ -2,6 +2,7 @@ import { UPLOAD, DOWNLOAD, SAVE, PROCESS } from '../constants/ActionTypes';
 import { REMOVE } from '../constants/LoadingStatusTypes';
 
 import { combineReducers } from 'redux';
+import {objectFilter} from '../utils'
 /*export default combineReducers({
 download: loadingType(DOWNLOAD),
 save: loadingType(SAVE),
@@ -37,8 +38,9 @@ export default function loading(state = {}, action) {
 const loadingType = type => (state = [], action) => {
   switch (action.type) {
     case type:
-      if (action.status === REMOVE)
-        return state.filter(x => x[action.key] === undefined);
+      if (action.status === REMOVE){
+        return objectFilter(state,((key,value) => key !== action.key));
+        }
       return Object.assign({}, state, { [action.key]: action.status });
     default:
       return state;

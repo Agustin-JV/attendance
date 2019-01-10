@@ -8,6 +8,7 @@ import {
   actOnObjectElement
 } from '../utils';
 import { ONGOING, COMPLETE, FAIL } from '../constants/LoadingStatusTypes';
+import * as status from '../constants/LoadingStatusTypes';
 //#region USER ACTIONS
 export const updateUsersData = (data, lastUser, func) => ({
   type: types.UPDATE_USERS_DATA,
@@ -109,6 +110,11 @@ export const processloading = (key, status) => ({
   type: types.PROCESS,
   key,
   status
+});
+export const loadingRemove = (key, type) => ({
+  type: type.toUpperCase(),
+  key,
+  status: status.REMOVE
 });
 //#endregion
 

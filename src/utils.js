@@ -185,6 +185,26 @@ export function actOnObjectElement(p, o, func, s) {
   return func(o[p]);
 }
 
+export function isLoading(status) {
+  return function(loadingObj, type, tag) {
+    let output = false;
+    if (!isEmpty(loadingObj))
+      objectForEach(loadingObj, (x, y) => {
+        if (x === type) {
+          objectForEach(y, (z, w) => {
+            if (w === status || isAny(w, status))
+              if (tag !== undefined) {
+                output = z === tag;
+              } else {
+                output = true;
+              }
+          });
+        }
+      });
+    return output;
+  };
+}
+
 export function isEmpty(obj) {
   // null and undefined are "empty"
   if (obj === null) return true;

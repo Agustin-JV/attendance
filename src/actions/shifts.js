@@ -65,10 +65,9 @@ export const onShiftRetrieveSucces = (
   dispatch,
   snapshot,
   lastShift,
-  year,
-  month
+  { year, month }
 ) => {
-  //dispatch(updateShiftsData(lastShift, snapshot,year,month));
+  dispatch(updateShiftsData(lastShift, snapshot, year, month));
   dispatch(downloadloading('download_shifts', COMPLETE));
   return Promise.resolve();
 };

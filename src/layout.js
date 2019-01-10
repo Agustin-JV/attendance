@@ -19,7 +19,6 @@ import { Menu, MenuItem } from '@material-ui/core';
 import { mainListItems, shitsListItems, appListItems, myAccountListItems } from './listItems';
 import { Route } from 'react-router-dom';
 import firebase from './fire_init';
-
 class Layout extends React.Component {
   constructor(props) {
     super(props);
@@ -30,9 +29,8 @@ class Layout extends React.Component {
     };
     //this.onDelayChange = this.onDelayChange.bind(this)
   }
-
   componentDidMount() {}
-
+ 
   handleDrawerOpen = () => {
     this.setState({ open: true });
   };
@@ -276,4 +274,5 @@ const styles = theme => ({
     marginBottom: theme.spacing.unit * 2
   }
 });
+
 export default withStyles(styles)(Layout);

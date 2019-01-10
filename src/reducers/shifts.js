@@ -26,11 +26,12 @@ function lastShift(state = null, action) {
 function shifts(state = {}, action) {
   switch (action.type) {
     case UPDATE_SHIFTS_DATA:
+    console.warning('Error happening becasue the mesage contains the firevase object and it shoud not be')
       action.data.docs.forEach(user => {
         state = actOnObjectElement(
           ['shifts', user.id, action.month, action.year],
           state,
-          user.data().m
+          x => user.data().m
         );
       });
       return state;

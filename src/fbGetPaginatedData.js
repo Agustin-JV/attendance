@@ -17,6 +17,7 @@ import { downloadloading } from './actions';
 export const getDocument = async (collection, doc, callback, ...args) => {
   let fresh = await isCacheFresh(collection + '-' + doc);
   if (fresh) {
+    console.log('cache')
     db.collection(collection)
       .doc(doc)
       .get({ source: 'cache' })
@@ -27,6 +28,7 @@ export const getDocument = async (collection, doc, callback, ...args) => {
         }
       );
   } else {
+    console.warn('cache')
     db.collection(collection)
       .doc(doc)
       .get()
@@ -74,7 +76,7 @@ const processDocumentQuery = (
 
 const onRetrieveError = (dispatch, tag) => error => {
   dispatch(downloadloading(tag, FAIL));
-  console.log(dispatch, error);
+  console.error(dispatch, error);
 };
 
 /**
@@ -167,8 +169,7 @@ export const getData = ({ collection, tag, limit, callback, ...args }) => {
           ),
           onRetrieveError(dispatch, tag)
         );
-    console.log(out)
-    return dispatch(downloadloading('NEW', COMPLETE));
+    console.warn('cache?:',fresh)
   };
 };
 
@@ -304,12 +305,12 @@ export const getMoreData = ({
 }) => {
   console.log('limit', limit, 'tag', tag);
   if (lastRow !== null && lastRow !== undefined) {
-    return (dispatch, getState) => {
+    return async (dispatch, getState) => {
       dispatch(downloadloading(tag, ONGOING));
-      isCacheFresh('' + collection + '-' + limit + '-' + lastRow.id).then(
-        fresh => {
+      let fresh = isCacheFresh('' + collection + '-' + limit + '-' + lastRow.id)
+      let out;  
           if (fresh) {
-            db.collection(collection)
+            out = await db.collection(collection)
               .startAfter(lastRow)
               .limit(limit)
               .get({ source: 'cache' })
@@ -326,7 +327,7 @@ export const getMoreData = ({
                 onRetrieveError(dispatch, tag)
               );
           } else {
-            db.collection(collection)
+            out = await db.collection(collection)
               .startAfter(lastRow)
               .limit(limit)
               .get()
@@ -343,8 +344,8 @@ export const getMoreData = ({
                 onRetrieveError(dispatch, tag)
               );
           }
-        }
-      );
+        
+      
     };
   } else {
     return getData(collection, callback, ...args);

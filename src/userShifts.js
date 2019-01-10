@@ -27,7 +27,8 @@ import {
   isAny,
   objectForEach,
   arrayMatchPattern,
-  arrayBuildComplexPattern
+  arrayBuildComplexPattern,
+  isLoading
 } from './utils';
 import { getData, getMoreData, getDocument } from './fbGetPaginatedData';
 import shift_colors from './shift_colors.json';
@@ -101,29 +102,21 @@ class UserShifts extends Component {
     this.setState({ loading });
   }
   componentWillReceiveProps(props) {
-    console.log('componentWillReceiveProps', props.shifts, props.users);
-    if (isEmpty(props.shifts)) {
-      this.getShifts();
-      //console.log(props.shifts)
+    const { loading, shifts } = props
+    if(!isLoading(['ONGOING','COMPLETE'])(loading,'download')){
+      if (isEmpty(shifts) && isEmpty(this.props.shifts) ) {
+        this.getShifts();
+      }
     }
-    if (this.props.shifts !== props.shifts) {
-      console.log(props.shifts)
+    if(isLoading('COMPLETE')(loading,'download') && !isLoading('ONGOING')(loading,'download')){
       this.getVisibleUsers(this.state.page, this.state.rowsPerPage);
       this.paginationRef.forceUpdateRows();
       this.processShiftsUpdate(props.shifts);
     }
-    this.setState({poop:'its real'})
   }
-  componentWillMount() {
-    //this.getShifts();
-    console.log('will')
-  }
-  componentDidMount(){
-    console.log('mounterd')
-  }
-  componentDidUpdate(){
-    console.log('did update')
-  }
+
+
+
   //#region render
   render() {
     const {
@@ -421,6 +414,7 @@ class UserShifts extends Component {
   };
   componentDidMount = () => {
     this.getHolidaysData(new Date().getFullYear());
+    //this.getShifts();
   };
   onGoLast = () => {
     this.getMoreShifts();
@@ -530,8 +524,8 @@ class UserShifts extends Component {
     ];
     const { holidays } = this.state;
     let activeHolidays = [];
-
-    if (holidays[utcStart.getFullYear()] !== undefined)
+    console.log('getActiveHolidays',holidays)
+    if (holidays[utcStart.getFullYear()] !== undefined && !isEmpty(holidays[utcStart.getFullYear()]))
       holidays[utcStart.getFullYear()].forEach(holiday => {
         if (holiday.date >= utcStart && holiday.date <= utcEnd) {
           activeHolidays.push(holiday);
@@ -1059,7 +1053,7 @@ const mapStateToProps = (state) => {
 
     lasUser: state.users.lastUser,
     users: state.users.users,
-    loading: state.loading.download
+    loading: state.loading
   };
 };
 const actions = {

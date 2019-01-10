@@ -28,7 +28,6 @@ const InApp = props => {
         <Route path="/schedules-rules" component={ScheduleRules} />
         <Route path="/projects/user/:id" component={EditUserForm} />
         <Route path="/app-security" component={JsonViewer} />
-        {console.log('WATSAP ')}
       </Layout>
     </Router>
   );
