@@ -5,9 +5,10 @@ import { connect } from 'react-redux';
 import ReactJson from 'react-json-view';
 import { onUserRetrieveSucces } from './actions/users';
 import { onShiftRetrieveSucces } from './actions/shifts';
+import { onCalendarRetrieveSucces } from './actions/calendar';
 import { downloadloading } from './actions/index';
-import { getData } from './fbGetPaginatedData';
-import { isLoading } from './utils'
+import { getData,getDocument } from './fbGetPaginatedData';
+import { isLoading } from './utils';
 class JsonViewer extends React.Component {
   constructor(props) {
     super(props);
@@ -15,6 +16,15 @@ class JsonViewer extends React.Component {
     //this.props.downloadloading('SOmething', 'COMPLETE')
     // this.props.getData(this.userRequest())
   }
+  calendarRequest = year => {
+    return {
+      collection: 'holidays',
+      tag: 'download_calendar',
+      doc: year.toString(),
+      callback: onCalendarRetrieveSucces,
+      year
+    };
+  };
   userRequest = (lastRow = null) => {
     let args = {
       collection: 'users',
@@ -29,7 +39,8 @@ class JsonViewer extends React.Component {
 
     return args;
   };
-   /*componentWillReceiveProps(props) {
+  /*
+   componentWillReceiveProps(props) {
     
     console.log('componentWillReceiveProps', props.data);
     if (isLoading('ONGOING')(props.data.loading,'download') ) {
@@ -49,8 +60,7 @@ class JsonViewer extends React.Component {
     }
    }*/
   shiftAmmountToRetrieve = () => {
-    
-    return  50;
+    return 50;
   };
   shiftRequest = (year, month, lastRow = null) => {
     let args = {
@@ -70,9 +80,10 @@ class JsonViewer extends React.Component {
   componentDidMount() {
     //this.getShifts();
     let { downloadloading } = this.props;
-   
+
     //this.props.getData(this.userRequest())//.then((x)=>{console.log('blabla',x)});
-    this.props.getData(this.shiftRequest(2018,10))
+    //this.props.getData(this.shiftRequest(2018, 10));
+    this.props.getDocument(this.calendarRequest(2019));
   }
 
   onChangeClick = e => {
@@ -103,5 +114,5 @@ const mapStateToProps = state => {
 
 export default connect(
   mapStateToProps,
-  { getData, downloadloading }
+  { getData, downloadloading,getDocument }
 )(JsonViewer);

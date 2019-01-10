@@ -36,6 +36,7 @@ import { db } from './fire_init';
 import { handleFile, XLSX } from './loadXlsx';
 import { onShiftRetrieveSucces } from './actions/shifts';
 import { onUserRetrieveSucces } from './actions/users';
+import { onCalendarRetrieveSucces } from './actions/calendar';
 import { connect } from 'react-redux';
 //#endregion
 //#region TS annotations
@@ -102,20 +103,25 @@ class UserShifts extends Component {
     this.setState({ loading });
   }
   componentWillReceiveProps(props) {
-    const { loading, shifts } = props
-    if(!isLoading(['ONGOING','COMPLETE'])(loading,'download')){
-      if (isEmpty(shifts) && isEmpty(this.props.shifts) ) {
+    const { loading, shifts, holidays } = props;
+    if (!isLoading(['ONGOING', 'COMPLETE'])(loading, 'download')) {
+      if (isEmpty(shifts) && isEmpty(this.props.shifts)) {
         this.getShifts();
       }
+      if (isEmpty(holidays) && isEmpty(this.props.holidays)) {
+        let year = new Date().getFullYear();
+        this.props.getDocument(this.calendarRequest(year));
+      }
     }
-    if(isLoading('COMPLETE')(loading,'download') && !isLoading('ONGOING')(loading,'download')){
+    if (
+      isLoading('COMPLETE')(loading, 'download') &&
+      !isLoading('ONGOING')(loading, 'download')
+    ) {
       this.getVisibleUsers(this.state.page, this.state.rowsPerPage);
       this.paginationRef.forceUpdateRows();
       this.processShiftsUpdate(props.shifts);
     }
   }
-
-
 
   //#region render
   render() {
@@ -413,7 +419,7 @@ class UserShifts extends Component {
     return { showNS: false, showMS: false };
   };
   componentDidMount = () => {
-    this.getHolidaysData(new Date().getFullYear());
+    //this.getHolidaysData(new Date().getFullYear());
     //this.getShifts();
   };
   onGoLast = () => {
@@ -443,6 +449,15 @@ class UserShifts extends Component {
       isHoliday: false
     });
   };
+  calendarRequest = year => {
+    return {
+      collection: 'holidays',
+      tag: 'download_calendar',
+      doc: year.toString(),
+      callback: onCalendarRetrieveSucces,
+      year
+    };
+  };
   shiftRequest = (year, month, lastRow = null) => {
     let args = {
       collection: 'wsinf/' + year + '/' + month,
@@ -455,7 +470,6 @@ class UserShifts extends Component {
     if (lastRow !== null) {
       args = { ...args, lastRow };
     }
-    console.log('shiftRequest', args);
     return args;
   };
   userRequest = (lastRow = null) => {
@@ -468,7 +482,6 @@ class UserShifts extends Component {
     if (lastRow !== null) {
       args = { ...args, lastRow };
     }
-    console.log('userRequest', args);
     return args;
   };
   getShifts = () => {
@@ -483,6 +496,15 @@ class UserShifts extends Component {
   getMoreShifts = () => {
     let { startDate, endDate } = this.state;
     console.log('getMoreShifts');
+    if (isEmpty(this.props.holidays[startDate.year])) {
+      let year = startDate.year;
+      this.props.getDocument(
+        'holidays',
+        year.toString(),
+        onCalendarRetrieveSucces,
+        year
+      );
+    }
     this.props.getMoreData(this.userRequest(this.state.lastUser));
     if (startDate.month !== endDate.month) {
       this.props.getMoreData(
@@ -524,8 +546,11 @@ class UserShifts extends Component {
     ];
     const { holidays } = this.state;
     let activeHolidays = [];
-    console.log('getActiveHolidays',holidays)
-    if (holidays[utcStart.getFullYear()] !== undefined && !isEmpty(holidays[utcStart.getFullYear()]))
+    console.log('getActiveHolidays', holidays);
+    if (
+      holidays[utcStart.getFullYear()] !== undefined &&
+      !isEmpty(holidays[utcStart.getFullYear()])
+    )
       holidays[utcStart.getFullYear()].forEach(holiday => {
         if (holiday.date >= utcStart && holiday.date <= utcEnd) {
           activeHolidays.push(holiday);
@@ -1045,7 +1070,7 @@ const holidayCodes = {
     code: 'H'
   }
 };
-const mapStateToProps = (state) => {
+const mapStateToProps = state => {
   console.log('mapStateToProps');
   return {
     shifts: state.shifts.shifts,
@@ -1058,7 +1083,8 @@ const mapStateToProps = (state) => {
 };
 const actions = {
   getData,
-  getMoreData
+  getMoreData,
+  getDocument
 };
 export default connect(
   mapStateToProps,

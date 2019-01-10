@@ -12,7 +12,6 @@ export default function todos(state = {}, action) {
     lastShift: lastShift(state.lastShift, action),
     shifts: shifts(state.shifts, action)
   };
-  //console.log('shifts',va)
   return va;
 }
 function lastShift(state = null, action) {
@@ -26,16 +25,15 @@ function lastShift(state = null, action) {
 function shifts(state = {}, action) {
   switch (action.type) {
     case UPDATE_SHIFTS_DATA:
-    console.warning('Error happening becasue the mesage contains the firevase object and it shoud not be')
-      action.data.docs.forEach(user => {
+      action.data.forEach(user => {
         state = actOnObjectElement(
           ['shifts', user.id, action.month, action.year],
           state,
-          x => user.data().m
+          x => user.data
         );
       });
       return state;
-    //return action.data; //actOnObjectElement( action.path, state, action.func(action.data) );
+
     case CREATE_SHIFT_DATA:
       return actOnObjectElement(
         ['shift', action.id, action.month, action.year],
@@ -44,6 +42,7 @@ function shifts(state = {}, action) {
           return { ...action.data };
         }
       );
+
     case UPDATE_SHIFT_DATA:
       return actOnObjectElement(
         ['shift', action.id, action.month, action.year],
@@ -52,18 +51,7 @@ function shifts(state = {}, action) {
           return { ...x, ...action.data };
         }
       );
-    /*return {
-            ...state,[action.year]:{
-                ...state[action.year],[action.month]:{
-                    ...state[action.year][action.month],[action.id]:{
-                        shifst:{
-                            ...state[action.year][action.month][action.id].shifts, 
-                            ...action.data
-                        }
-                    }
-                }
-            }
-        }*/
+
     case REPLACE_SHIFT_DATA:
       return actOnObjectElement(
         ['shift', action.id, action.month, action.year],
@@ -72,18 +60,7 @@ function shifts(state = {}, action) {
           return { ...action.data };
         }
       );
-    /*return {
-        ...state,
-        [action.year]: {
-          ...state[action.year],
-          [action.month]: {
-            ...state[action.year][action.month],
-            [action.id]: {
-              shifst: { ...action.data }
-            }
-          }
-        }
-      };*/
+
     case DELETE_SHIFT_DATA:
       return actOnObjectElement(
         ['shift', action.id, action.month, action.year],
@@ -92,24 +69,6 @@ function shifts(state = {}, action) {
           return objectFilter(x, (k, v) => k !== action.target);
         }
       );
-    /* return {
-        ...state,
-        [action.year]: {
-          ...state[action.year],
-          [action.month]: {
-            ...state[action.year][action.month],
-            [action.id]: {
-              shifst: {
-                ...objectFilter(
-                  state[action.year][action.month],
-                  [action.id].shifts,
-                  (k, v) => k !== action.target
-                )
-              }
-            }
-          }
-        }
-      };*/
 
     default:
       return state;
