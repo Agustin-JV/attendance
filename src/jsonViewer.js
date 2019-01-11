@@ -29,7 +29,7 @@ class JsonViewer extends React.Component {
     let args = {
       collection: 'users',
       tag: 'download_users',
-      limit: 50,
+      limit: 10,
       callback: onUserRetrieveSucces
     };
     if (lastRow !== null) {
@@ -81,8 +81,8 @@ class JsonViewer extends React.Component {
     //this.getShifts();
     let { downloadloading } = this.props;
 
-    //this.props.getData(this.userRequest())//.then((x)=>{console.log('blabla',x)});
-    //this.props.getData(this.shiftRequest(2018, 10));
+    this.props.getData(this.userRequest())//.then((x)=>{console.log('blabla',x)});
+    this.props.getData(this.shiftRequest(2019, 10));
     this.props.getDocument(this.calendarRequest(2019));
   }
 

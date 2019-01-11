@@ -30,7 +30,7 @@ import {
   arrayBuildComplexPattern,
   isLoading
 } from './utils';
-import { getData, getMoreData, getDocument } from './fbGetPaginatedData';
+import { getData, getDocument } from './fbGetPaginatedData';
 import shift_colors from './shift_colors.json';
 import { db } from './fire_init';
 import { handleFile, XLSX } from './loadXlsx';
@@ -68,6 +68,7 @@ class UserShifts extends Component {
     //the event array should be sorted in ascending order by event.start property, otherwise there will be some rendering errors
     /** @type {State} */
     this.state = {
+      initialized: false,
       viewModel: null,
       anchorEl: null,
       open: false,
@@ -103,26 +104,35 @@ class UserShifts extends Component {
     this.setState({ loading });
   }
   componentWillReceiveProps(props) {
-    const { loading, shifts, holidays } = props;
-    if (!isLoading(['ONGOING', 'COMPLETE'])(loading, 'download')) {
-      if (isEmpty(shifts) && isEmpty(this.props.shifts)) {
-        this.getShifts();
-      }
-      if (isEmpty(holidays) && isEmpty(this.props.holidays)) {
-        let year = new Date().getFullYear();
-        this.props.getDocument(this.calendarRequest(year));
-      }
-    }
+    const { loading, users } = props;
+    this.initialize(props);
+
     if (
-      isLoading('COMPLETE')(loading, 'download') &&
-      !isLoading('ONGOING')(loading, 'download')
+      !isEmpty(users) ||
+      (isLoading('COMPLETE')(loading, 'download') &&
+        !isLoading('ONGOING')(loading, 'download'))
     ) {
       this.getVisibleUsers(this.state.page, this.state.rowsPerPage);
       this.paginationRef.forceUpdateRows();
       this.processShiftsUpdate(props.shifts);
     }
   }
-
+  initialize = props => {
+    const { initialized } = this.state;
+    if (!initialized) {
+      const { loading, shifts, calendar } = props;
+      if (!isLoading(['ONGOING', 'COMPLETE'])(loading, 'download')) {
+        if (isEmpty(shifts) && isEmpty(this.props.shifts)) {
+          this.getShifts();
+        }
+        if (isEmpty(calendar) && isEmpty(this.props.calendar)) {
+          let year = new Date().getFullYear();
+          this.props.getDocument(this.calendarRequest(year));
+        }
+      }
+      this.setState({ initialized: true });
+    }
+  };
   //#region render
   render() {
     const {
@@ -316,6 +326,11 @@ class UserShifts extends Component {
         )
           this.props.getData(this.shiftRequest(endDate.year, endDate.month));
         this.props.getData(this.shiftRequest(startDate.year, startDate.month));
+        if (isEmpty(this.props.calendar[startDate.year])) {
+          let year = startDate.year;
+          console.log('getMoreShifts cal', year);
+          this.props.getDocument(this.calendarRequest(year));
+        }
       }
     );
   };
@@ -421,6 +436,7 @@ class UserShifts extends Component {
   componentDidMount = () => {
     //this.getHolidaysData(new Date().getFullYear());
     //this.getShifts();
+    this.initialize({});
   };
   onGoLast = () => {
     this.getMoreShifts();
@@ -496,22 +512,14 @@ class UserShifts extends Component {
   getMoreShifts = () => {
     let { startDate, endDate } = this.state;
     console.log('getMoreShifts');
-    if (isEmpty(this.props.holidays[startDate.year])) {
-      let year = startDate.year;
-      this.props.getDocument(
-        'holidays',
-        year.toString(),
-        onCalendarRetrieveSucces,
-        year
-      );
-    }
-    this.props.getMoreData(this.userRequest(this.state.lastUser));
+
+    this.props.getData(this.userRequest(this.state.lastUser));
     if (startDate.month !== endDate.month) {
-      this.props.getMoreData(
+      this.props.getData(
         this.shiftRequest(endDate.year, endDate.month, this.props.lastShift)
       );
     }
-    this.props.getMoreData(
+    this.props.getData(
       this.shiftRequest(startDate.year, startDate.month, this.props.lastShift)
     );
   };
@@ -544,14 +552,14 @@ class UserShifts extends Component {
       new Date(Date.UTC(s.getFullYear(), s.getMonth(), s.getDate())),
       new Date(Date.UTC(e.getFullYear(), e.getMonth(), e.getDate()))
     ];
-    const { holidays } = this.state;
+    const { calendar } = this.props;
     let activeHolidays = [];
-    console.log('getActiveHolidays', holidays);
+    console.log('getActiveHolidays', calendar);
     if (
-      holidays[utcStart.getFullYear()] !== undefined &&
-      !isEmpty(holidays[utcStart.getFullYear()])
+      calendar[utcStart.getFullYear()] !== undefined &&
+      !isEmpty(calendar[utcStart.getFullYear()])
     )
-      holidays[utcStart.getFullYear()].forEach(holiday => {
+      calendar[utcStart.getFullYear()].forEach(holiday => {
         if (holiday.date >= utcStart && holiday.date <= utcEnd) {
           activeHolidays.push(holiday);
         }
@@ -681,7 +689,7 @@ class UserShifts extends Component {
   };
   /** continue fetching for the users from the last one to fill the resource column */
   getUsersMoreData = () => {
-    getMoreData('users', 50, this.processUsersQuery, this.state.lastRow);
+    getData('users', 50, this.processUsersQuery, this.state.lastRow);
   };
   /**
    * @param {any} [snapshot]
@@ -1075,7 +1083,7 @@ const mapStateToProps = state => {
   return {
     shifts: state.shifts.shifts,
     lastShift: state.shifts.lastShift,
-
+    calendar: state.calendar,
     lasUser: state.users.lastUser,
     users: state.users.users,
     loading: state.loading
@@ -1083,7 +1091,6 @@ const mapStateToProps = state => {
 };
 const actions = {
   getData,
-  getMoreData,
   getDocument
 };
 export default connect(
